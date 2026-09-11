@@ -143,7 +143,7 @@ def render():
     contador = iniciar_filtros()
 
     mask_edicion = filtro_edicion(df, "socio_edicion", reset_keys=["socio_nacionalidad"])
-    mask = mask_edicion & filtro_nacionalidad(df, "socio_nacionalidad", df_opciones=df[mask])
+    mask = mask_edicion & filtro_nacionalidad(df, "socio_nacionalidad", df_opciones=df[mask_edicion])
     mask &= filtro_region(df, "socio_region")
 
     df = aplicar_filtros(df, mask, contador)
