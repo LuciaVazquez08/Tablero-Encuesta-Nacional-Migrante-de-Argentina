@@ -1,0 +1,32 @@
+[theme]
+# --- Tema extraído de encuestamigrante.ar ---
+# Color principal: naranja marca
+primaryColor = "#FF7900"
+
+# Fondo general de la app 
+backgroundColor = "#FFFFFF"
+
+# Fondo secundario: sidebar, cards, contenedores 
+secondaryBackgroundColor = "#F5F7FB"
+
+# Color de texto principal
+textColor = "#0F0F1A"
+
+# Tipografía base. Streamlit usa por defecto "sans serif" del sistema;
+# para usar DM Sans real, sumamos [[theme.fontFaces]] abajo (Streamlit >= 1.39)
+font = "DM Sans"
+
+[[theme.fontFaces]]
+family = "DM Sans"
+url = "https://fonts.gstatic.com/s/dmsans/v15/rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwAopxRvbo.ttf"
+weight = 400
+
+[[theme.fontFaces]]
+family = "DM Sans"
+url = "https://fonts.gstatic.com/s/dmsans/v15/rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwAopxRvbo.ttf"
+weight = 700
+
+[[theme.fontFaces]]
+family = "Syncopate"
+url = "https://fonts.gstatic.com/s/syncopate/v22/pe0sMImSLYBIv1o4X1M8cce9I9tqbg.ttf"
+weight = 700
