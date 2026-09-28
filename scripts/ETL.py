@@ -11,123 +11,84 @@ def normalizar_idioma(valor):
         return np.nan
     v = str(valor).strip().lower()
     
-    # Español / Castellano
     if any(x in v for x in ['español', 'castellano', 'espa']):
         return 'Español / Castellano'
-    # Guaraní
     if 'guarani' in v or 'guaraní' in v or 'guaranu' in v:
         return 'Guaraní'
-    # Quechua
     if 'quechua' in v or 'kichua' in v:
         return 'Quechua'
-    # Aymara
     if 'aymara' in v or 'ayamara' in v or 'áyáman' in v:
         return 'Aymara'
-    # Creole
     if 'creole' in v or 'criollo' in v or 'creol' in v or 'kreyol' in v:
         return 'Creole haitiano'
-    # Wolof
     if 'wolof' in v or 'wilof' in v or 'wollof' in v:
         return 'Wolof'
-    # Wayuunaiki
     if 'wayuu' in v or 'wayu' in v:
         return 'Wayuunaiki'
-    # Neerlandés
     if 'neerland' in v or 'holland' in v or 'hollandes' in v:
         return 'Neerlandés'
-    # Alemán
     if 'alem' in v:
         return 'Alemán'
-    # Ruso
     if v in ['ruso', 'ruso ']:
         return 'Ruso'
-    # Italiano
     if 'italian' in v:
         return 'Italiano'
-    # Portugués
     if 'portugu' in v:
         return 'Portugués'
-    # Francés
     if 'franc' in v:
         return 'Francés'
-    # Inglés
     if 'ingl' in v:
         return 'Inglés'
-    # Árabe
     if 'arab' in v or 'arabe' in v or 'darija' in v:
         return 'Árabe'
-    # Chino
     if 'chin' in v or '\u4e2d\u6587' in v or '琉球' in v:
         return 'Chino'
-    # Catalán
     if 'catal' in v:
         return 'Catalán'
-    # Gallego
     if 'gallego' in v:
         return 'Gallego'
-    # Turco
     if 'turco' in v:
         return 'Turco'
-    # Sueco
     if 'sueco' in v:
         return 'Sueco'
-    # Armenio
     if 'armenio' in v:
         return 'Armenio'
-    # Búlgaro
     if 'bulgar' in v or 'búlgar' in v:
         return 'Búlgaro'
-    # Griego
     if 'grieg' in v or 'griega' in v or 'griego' in v:
         return 'Griego'
-    # Serbio
     if 'serbio' in v:
         return 'Serbio'
-    # Esloveno
     if 'esloveno' in v:
         return 'Esloveno'
-    # Punjabi
     if 'punjabi' in v:
         return 'Punjabi'
-    # Urdu
     if 'urdu' in v:
         return 'Urdu'
-    # Hindi
     if 'hindi' in v:
         return 'Hindi'
-    # Ucraniano
     if 'ucraniano' in v or 'ucrani' in v:
         return 'Ucraniano'
-    # Lingala
     if 'lingala' in v:
         return 'Lingala'
-    # Persa
     if 'persa' in v:
         return 'Persa'
-    # Lituano
     if 'lituano' in v:
         return 'Lituano'
-    # Polaco
     if 'polaco' in v:
         return 'Polaco'
-    # Kabyle
     if 'kabyle' in v:
         return 'Kabyle'
-    # Mapuche
     if 'mapuche' in v or 'mapuzungun' in v:
         return 'Mapuche (Mapuzungun)'
-    # Twi / Akan
     if v in ['twi', 'akan']:
         return 'Twi / Akan'
-    # Serere
     if 'serere' in v or 'serrere' in v or 'sérère' in v:
         return 'Serere'
-    # Toucouleur
     if 'toucouleur' in v:
         return 'Toucouleur'
     if v in ['no se', 'no sé', 'kaf']:
         return np.nan
-
     return str(valor).strip().title()
 
 def resolver_idioma(row, col_principal, col_otro, valor_otro):
@@ -140,6 +101,19 @@ def filtrar_por_frecuencia(df, col, minimo=5):
     conteo = df[col].value_counts()
     validos = conteo[conteo >= minimo].index
     df[col] = df[col].where(df[col].isin(validos), other='Otro')
+    return df
+
+def construir_multiseleccion(df, mapa, columnas_1_0=False, columna_resumen=None):
+    """Arma, a partir de una pregunta de selección múltiple, un set de columnas booleanas
+    ponderables (una por categoría final armonizada)"""
+    todas = [c for cols in mapa.values() for c in cols]
+    respondio = df[columna_resumen].notna() if columna_resumen else df[todas].notna().any(axis=1)
+    for columna_nueva, columnas_origen in mapa.items():
+        if columnas_1_0:
+            valor = (df[columnas_origen] == 1.0).any(axis=1)
+        else:
+            valor = df[columnas_origen].notna().any(axis=1)
+        df[columna_nueva] = valor.where(respondio, np.nan)
     return df
 
 def mapear_hijos_2023(row):
@@ -213,7 +187,6 @@ def run_etl():
     df_2020['idioma_var'] = df_2020['idioma'].where(df_2020['idioma'].isin(top7), other='Otro')
     df_2023['idioma_var'] = df_2023['idioma'].where(df_2023['idioma'].isin(top7), other='Otro')
 
-
     #DESCENDENCIA
     df_2020["descendencia"] = df_2020['q4_descendientes']
     df_2020.replace({'descendencia': {'Asiático/a o descendiente de asiático/a.':'Descendencia Asiática', np.nan: 'Ninguna de las anteriores', 'Indígena o descendiente de pueblos indígenas u originarios': 'Descendencia Indígena', 'Afrodescendiente, africano o afroargentino/a': 'Afrodescendiente'}}, inplace=True)
@@ -223,7 +196,6 @@ def run_etl():
     df_2023.drop(columns=['q5_descendencia_afro', 'q5_descendencia_indigena', 'q5_descendencia_asiatica', 'q5_descendencia_ninguno', 'q5_descendencia_otro'], inplace=True)
 
     # REGION
-
     PARTIDOS_AMBA = {
         "tigre", "san fernando", "san isidro", "vicente lopez", "vicente lópez",
         "general san martin", "general san martín", "gral san martin", "gral. san martín",
@@ -415,31 +387,31 @@ def run_etl():
     df_2023.drop(columns=['q32_asistencia_educacion'], inplace=True)
 
     #INCONVENIENTES INSCRIPCION ESCOLAR
-    df_2020['inconveniente_educacion'] = df_2020['q22_pbm_inscripcion'].replace({
+    inconveniente_2020 = df_2020['q22_pbm_inscripcion'].replace({
         'NO': 'No',
         'Si, otros problemas': 'Sí, otros problemas',
         'Si, problemas con la inscripción (no pude o no supe hacerla)': 'Sí, problemas con la inscripción (no pude o no supe hacerla)',
         'Sí, problemas con la documentación de mi hijo/a (falta de DNI, documentación del país de origen, falta de sellos)':
             'Sí, problemas con la documentación del hijo/a (falta de DNI, documentación del país de origen, falta de sellos) *'
     })
+    mapa_inconveniente_2020 = {
+        'hijos_educacion_problema_ninguno': 'No',
+        'hijos_educacion_problema_inscripcion': 'Sí, problemas con la inscripción (no pude o no supe hacerla)',
+        'hijos_educacion_problema_documentacion': 'Sí, problemas con la documentación del hijo/a (falta de DNI, documentación del país de origen, falta de sellos) *',
+        'hijos_educacion_problema_otros': 'Sí, otros problemas',
+    }
+    for columna_nueva, valor in mapa_inconveniente_2020.items():
+        df_2020[columna_nueva] = (inconveniente_2020 == valor).where(inconveniente_2020.notna(), np.nan)
+    df_2020['hijos_educacion_problema_cupo'] = np.nan
     df_2020.drop(columns=['q22_pbm_inscripcion', 'q22_otros'], inplace=True)
 
-    def resolver_inconveniente_educacion_2023(row):
-        if row['q33_incoveniente_educacion_no'] == 1.0:
-            return 'No'
-        if row['q33_incoveniente_educacion_cupo'] == 1.0:
-            return 'Sí, problemas de cupo en la escuela'
-        if row['q33_inconveniente_educacion_inscripcion'] == 1.0:
-            return 'Sí, problemas con la inscripción (no pude o no supe hacerla)'
-        if (row['q33_inconveniente_educacion_dni'] == 1.0
-                or row['q33_inconveniente_educacion_documentacion_origen'] == 1.0
-                or row['q33_inconveniente_educacion_documentacion_argentina'] == 1.0):
-            return 'Sí, problemas con la documentación del hijo/a (falta de DNI, documentación del país de origen, falta de sellos) *'
-        if row['q33_inconveniente_educacion_otro'] == 1.0:
-            return 'Sí, otros problemas'
-        return np.nan
-
-    df_2023['inconveniente_educacion'] = df_2023.apply(resolver_inconveniente_educacion_2023, axis=1)
+    df_2023 = construir_multiseleccion(df_2023, {
+        'hijos_educacion_problema_ninguno': ['q33_incoveniente_educacion_no'],
+        'hijos_educacion_problema_cupo': ['q33_incoveniente_educacion_cupo'],
+        'hijos_educacion_problema_inscripcion': ['q33_inconveniente_educacion_inscripcion'],
+        'hijos_educacion_problema_documentacion': ['q33_inconveniente_educacion_dni', 'q33_inconveniente_educacion_documentacion_origen', 'q33_inconveniente_educacion_documentacion_argentina'],
+        'hijos_educacion_problema_otros': ['q33_inconveniente_educacion_otro'],
+    }, columnas_1_0=True, columna_resumen='q33_incoveniente_educacion')
     df_2023.drop(columns=[
         'q33_incoveniente_educacion', 'q33_incoveniente_educacion_no', 'q33_incoveniente_educacion_cupo',
         'q33_inconveniente_educacion_inscripcion', 'q33_inconveniente_educacion_dni',
@@ -499,41 +471,28 @@ def run_etl():
         'q37_salud_problemas_esi', 'q37_salud_problemas_no'
     ], inplace=True)
 
-    #ACCESO A LA SALUD se resuelve a una sola categoría por persona
-    # con esta prioridad: nunca necesitó > no pudo atenderse > salud pública > obra social/privada > tradicional/familiar/comunitaria.
-    def resolver_acceso_salud_2020(row):
-        publica = pd.notna(row['q26_salud_guardias']) or pd.notna(row['q26_salud_centros']) or pd.notna(row['q26_salud_consultorios'])
-        obrasocial = pd.notna(row['q26_salud_obrasocial'])
-        tradicional = pd.notna(row['q26_salud_comunitarios']) or pd.notna(row['q26_salud_tradicional']) or pd.notna(row['q26_salud_familia'])
-
-        if publica:
-            return 'Salud pública'
-        if obrasocial:
-            return 'Obra social, prepaga o privada'
-        if tradicional:
-            return 'Medicina tradicional, familiar o comunitaria'
-        return np.nan
-
-    df_2020['metodo_acceso_salud'] = df_2020.apply(resolver_acceso_salud_2020, axis=1)
+    #ACCESO A LA SALUD
+    df_2020 = construir_multiseleccion(df_2020, {
+        'salud_acceso_publica': ['q26_salud_guardias', 'q26_salud_centros', 'q26_salud_consultorios'],
+        'salud_acceso_obrasocial': ['q26_salud_obrasocial'],
+        'salud_acceso_tradicional': ['q26_salud_comunitarios', 'q26_salud_tradicional', 'q26_salud_familia'],
+        'salud_acceso_otro': ['q26_salud_otros'],
+    })
+    df_2020['salud_acceso_nunca_necesito'] = np.nan
+    df_2020['salud_acceso_no_pudo'] = np.nan
     df_2020.drop(columns=[
         'q26_salud_guardias', 'q26_salud_centros', 'q26_salud_consultorios', 'q26_salud_obrasocial',
         'q26_salud_comunitarios', 'q26_salud_tradicional', 'q26_salud_familia', 'q26_salud_otros'
     ], inplace=True)
 
-    def resolver_acceso_salud_2023(row):
-        if row['q38_salud_resolver_problema_no'] == 1.0:
-            return 'Nunca necesité atenderme'
-        if row['q38_salud_resolver_problema_imposibilidad'] == 1.0:
-            return 'No pudo atenderse'
-        if row['q38_salud_resolver_problema_hospitalpub'] == 1.0 or row['q38_salud_resolver_problema_cen_ate_prim'] == 1.0:
-            return 'Salud pública'
-        if row['q38_salud_resolver_problema_prepaga'] == 1.0 or row['q38_salud_resolver_problema_pago_consulta'] == 1.0:
-            return 'Obra social, prepaga o privada'
-        if row['q38_salud_resolver_problema_tracional'] == 1.0 or row['q38_salud_resolver_problema_recomendaciones'] == 1.0:
-            return 'Medicina tradicional, familiar o comunitaria'
-        return np.nan
-
-    df_2023['metodo_acceso_salud'] = df_2023.apply(resolver_acceso_salud_2023, axis=1)
+    df_2023 = construir_multiseleccion(df_2023, {
+        'salud_acceso_publica': ['q38_salud_resolver_problema_hospitalpub', 'q38_salud_resolver_problema_cen_ate_prim'],
+        'salud_acceso_obrasocial': ['q38_salud_resolver_problema_prepaga', 'q38_salud_resolver_problema_pago_consulta'],
+        'salud_acceso_tradicional': ['q38_salud_resolver_problema_tracional', 'q38_salud_resolver_problema_recomendaciones'],
+        'salud_acceso_nunca_necesito': ['q38_salud_resolver_problema_no'],
+        'salud_acceso_no_pudo': ['q38_salud_resolver_problema_imposibilidad'],
+        'salud_acceso_otro': ['q38_salud_resolver_problema_otro'],
+    }, columnas_1_0=True, columna_resumen='q38_salud_resolver_problema')
     df_2023.drop(columns=[
         'q38_salud_resolver_problema', 'q38_salud_resolver_problema_no', 'q38_salud_resolver_problema_hospitalpub',
         'q38_salud_resolver_problema_cen_ate_prim', 'q38_salud_resolver_problema_prepaga',
@@ -549,58 +508,29 @@ def run_etl():
     df_2023.drop(columns=['q39_salud_acceso'], inplace=True)
 
     #TIPO DE DIFICULTAD DE ACCESO A LA SALUD (agrupado según categorías amplias)
-    # Nota: "Barreras administrativas" combina, en 2020, dificultades de transporte/horarios/
-    # distancia/información para llegar al establecimiento, y en 2023 solo falta de información o
-    # desconocimiento de los trámites; no son estrictamente equivalentes (2020 incluye barreras de
-    # traslado que 2023 no releva). "Barreras de comunicación" (idioma) es una categoría nueva de
-    # 2023, sin equivalente en 2020. "Sin dificultades" solo existe en 2020, ya que en 2023 esta
-    # pregunta es condicional (solo se hace a quien ya declaró haber tenido dificultades en Q39).
-    # Como es de selección múltiple, se resuelve a una sola categoría por persona con esta
-    # prioridad: sin dificultades > maltrato o discriminación > barreras económicas > barreras
-    # administrativas > barreras de comunicación > barreras de acceso al servicio > otras.
-    def resolver_tipo_dificultad_2020(row):
-        if pd.notna(row['q28_dificultades_no']):
-            return 'Sin dificultades'
-        if pd.notna(row['q28_dificultades_discrim']):
-            return 'Maltrato o discriminación'
-        if pd.notna(row['q28_dificultades_pago']):
-            return 'Barreras económicas'
-        if pd.notna(row['q28_dificultades_dni']) or pd.notna(row['q28_dificultades_domicilio']) or pd.notna(row['q28_dificultades_acceso']):
-            return 'Barreras administrativas'
-        if pd.notna(row['q28_dificultades_turnos']):
-            return 'Barreras de acceso al servicio'
-        if pd.notna(row['q28_dificultades_otras']):
-            return 'Otras'
-        return np.nan
-
-    df_2020['tipo_dificultad_salud'] = df_2020.apply(resolver_tipo_dificultad_2020, axis=1)
-    #VALIDAR: los casos sin dato se asumen como "Sin dificultades"; a confirmar con coordinación.
-    df_2020['tipo_dificultad_salud'] = df_2020['tipo_dificultad_salud'].fillna('Sin dificultades')
+    df_2020 = construir_multiseleccion(df_2020, {
+        'salud_dificultad_ninguna': ['q28_dificultades_no'],
+        'salud_dificultad_maltrato': ['q28_dificultades_discrim'],
+        'salud_dificultad_economicas': ['q28_dificultades_pago'],
+        'salud_dificultad_administrativas': ['q28_dificultades_dni', 'q28_dificultades_domicilio', 'q28_dificultades_acceso'],
+        'salud_dificultad_acceso_servicio': ['q28_dificultades_turnos'],
+        'salud_dificultad_otras': ['q28_dificultades_otras'],
+    })
+    df_2020['salud_dificultad_comunicacion'] = np.nan
     df_2020.drop(columns=[
         'q28_dificultades_no', 'q28_dificultades_dni', 'q28_dificultades_domicilio', 'q28_dificultades_discrim',
         'q28_dificultades_pago', 'q28_dificultades_acceso', 'q28_dificultades_turnos', 'q28_dificultades_otras'
     ], inplace=True)
 
-    def resolver_tipo_dificultad_2023(row):
-        if row['q40_salud_acceso_dificultades_maltrato'] == 1.0:
-            return 'Maltrato o discriminación'
-        if row['q40_salud_acceso_dificultades_pago'] == 1.0:
-            return 'Barreras económicas'
-        if (row['q40_salud_acceso_dificultades_dni'] == 1.0
-                or row['q40_salud_acceso_dificultades_domicilio'] == 1.0
-                or row['q40_salud_acceso_dificultades_desconocimiento'] == 1.0):
-            return 'Barreras administrativas'
-        if row['q40_salud_acceso_dificultades_idioma'] == 1.0:
-            return 'Barreras de comunicación'
-        if row['q40_salud_acceso_dificultades_turnos'] == 1.0:
-            return 'Barreras de acceso al servicio'
-        if row['q40_salud_acceso_dificultades_otra'] == 1.0:
-            return 'Otras'
-        return np.nan
-
-    df_2023['tipo_dificultad_salud'] = df_2023.apply(resolver_tipo_dificultad_2023, axis=1)
-    #VALIDAR: los casos sin dato se asumen como "Sin dificultades"; a confirmar con coordinación.
-    df_2023['tipo_dificultad_salud'] = df_2023['tipo_dificultad_salud'].fillna('Sin dificultades')
+    df_2023 = construir_multiseleccion(df_2023, {
+        'salud_dificultad_maltrato': ['q40_salud_acceso_dificultades_maltrato'],
+        'salud_dificultad_economicas': ['q40_salud_acceso_dificultades_pago'],
+        'salud_dificultad_administrativas': ['q40_salud_acceso_dificultades_dni', 'q40_salud_acceso_dificultades_domicilio', 'q40_salud_acceso_dificultades_desconocimiento'],
+        'salud_dificultad_comunicacion': ['q40_salud_acceso_dificultades_idioma'],
+        'salud_dificultad_acceso_servicio': ['q40_salud_acceso_dificultades_turnos'],
+        'salud_dificultad_otras': ['q40_salud_acceso_dificultades_otra'],
+    }, columnas_1_0=True, columna_resumen='q40_salud_acceso_dificultades')
+    df_2023['salud_dificultad_ninguna'] = np.nan
     df_2023.drop(columns=[
         'q40_salud_acceso_dificultades', 'q40_salud_acceso_dificultades_dni', 'q40_salud_acceso_dificultades_domicilio',
         'q40_salud_acceso_dificultades_maltrato', 'q40_salud_acceso_dificultades_pago',
@@ -640,41 +570,39 @@ def run_etl():
 
     #DIFICULTAD DNI
     dificultad_cols = {
-        'q21_dni_dificultad_turnos':               'Sí, no pude sacar turno o me lo postergaron',
-        'q21_dni_dificultad_demora':               'Sí, no pude sacar turno o me lo postergaron',
-        'q21_dni_dificultad_costo':                'Sí, por dificultades económicas',
-        'q21_dni_dificultad_documentacion_origen': 'Sí, me falta documentación de mi país de origen para completar el trámite',
-        'q21_dni_dificultad_falta_info':           'Sí, no sé cómo iniciar el trámite (no entiendo el idioma, etc.)',
-        'q21_dni_dificultad_internet':             'Sí, no tengo internet o herramientas para hacerlo (teléfono, computadora, etc.)',
-        'q21_dni_dificultad_identidad_genero':     'Otro (especifique)',
-        'q21_dni_dificultad_otros':                'Otro (especifique)',
-    } 
+        'q21_dni_dificultad_turnos':               'dni_dificultad_tipo_turnos',
+        'q21_dni_dificultad_demora':               'dni_dificultad_tipo_turnos',
+        'q21_dni_dificultad_costo':                'dni_dificultad_tipo_economica',
+        'q21_dni_dificultad_documentacion_origen': 'dni_dificultad_tipo_doc_origen',
+        'q21_dni_dificultad_falta_info':           'dni_dificultad_tipo_informacion',
+        'q21_dni_dificultad_internet':             'dni_dificultad_tipo_internet',
+        'q21_dni_dificultad_identidad_genero':     'dni_dificultad_tipo_otro',
+        'q21_dni_dificultad_otros':                'dni_dificultad_tipo_otro',
+    }
+    mapa_dificultad_2023 = {}
+    for columna_origen, columna_nueva in dificultad_cols.items():
+        mapa_dificultad_2023.setdefault(columna_nueva, []).append(columna_origen)
 
-    def resolver_dificultad_2023(row):
-        if row['q20_dni_dificultad_binaria'] == 'No':
-            return 'No, no he tenido dificultades'
+    df_2023['dni_tuvo_dificultad'] = df_2023['q20_dni_dificultad_binaria'].replace({np.nan: 'Prefiero no responder'})
+    df_2023 = construir_multiseleccion(df_2023, mapa_dificultad_2023, columnas_1_0=True, columna_resumen='q20_dni_dificultad_binaria')
+    df_2023.drop(columns=list(dificultad_cols.keys()) + ['q20_dni_dificultad_binaria'], inplace=True)
 
-        if row['q20_dni_dificultad_binaria'] == 'Prefiero no responder':
-            return 'Prefiero no responder'
-
-        for col, categoria in dificultad_cols.items():
-            if row.get(col) == 1.0:
-                return categoria
-
-        return 'Prefiero no responder'
-
-    df_2023['dni_dificultad'] = df_2023.apply(resolver_dificultad_2023, axis=1)
-
-    df_2020['dni_dificultad'] = df_2020['q14_problemas_docu'].replace({
-        np.nan: 'Prefiero no responder'
-    })
-    df_2020['dni_dificultad'] = df_2020['dni_dificultad'].replace({
+    dni_dificultad_texto_2020 = df_2020['q14_problemas_docu'].replace({
         'Sí, no cumplo con los requisitos para regularizarme': 'Otro (especifique)',
         'Sí, no sé usar el sistema online para el trámite (RADEX)': 'Sí, no tengo internet o herramientas para hacerlo (teléfono, computadora, etc.)'
     })
-
+    df_2020['dni_tuvo_dificultad'] = dni_dificultad_texto_2020.replace({np.nan: 'Prefiero no responder'})
+    mapa_dificultad_texto_2020 = {
+        'dni_dificultad_tipo_turnos': 'Sí, no pude sacar turno o me lo postergaron',
+        'dni_dificultad_tipo_economica': 'Sí, por dificultades económicas',
+        'dni_dificultad_tipo_doc_origen': 'Sí, me falta documentación de mi país de origen para completar el trámite',
+        'dni_dificultad_tipo_informacion': 'Sí, no sé cómo iniciar el trámite (no entiendo el idioma, etc.)',
+        'dni_dificultad_tipo_internet': 'Sí, no tengo internet o herramientas para hacerlo (teléfono, computadora, etc.)',
+        'dni_dificultad_tipo_otro': 'Otro (especifique)',
+    }
+    for columna_nueva, valor in mapa_dificultad_texto_2020.items():
+        df_2020[columna_nueva] = (dni_dificultad_texto_2020 == valor).where(dni_dificultad_texto_2020.notna(), np.nan)
     df_2020.drop(columns=['q14_problemas_docu'], inplace=True)
-    df_2023.drop(columns=list(dificultad_cols.keys()) + ['q20_dni_dificultad_binaria'], inplace=True)
 
     #FAMILIA Y HOGAR
     df_2020['hogar_personas'] = df_2020['q34_cant_perso']
@@ -730,50 +658,29 @@ def run_etl():
     df_2023['vivienda_tenencia'] = df_2023['q43_vivienda_es']
     df_2023.drop(columns=['q43_vivienda_es', 'q43_vivienda_es_especificar'], inplace=True)
 
-    #DIFICULTADES DE ACCESO A LA VIVIENDA (agrupado según categorías amplias)
-    #VALIDAR: como es de selección múltiple, se resuelve a una sola categoría por persona con esta
-    # prioridad (a confirmar con coordinación): sin dificultades > conflictos habitacionales >
-    # barreras para alquilar > barreras económicas > acceso a programas de vivienda > otras.
-    # "Conflictos habitacionales" (desalojo, estafa) es una categoría nueva de 2023, sin
-    # equivalente en 2020.
-    def resolver_dificultad_vivienda_2020(row):
-        if pd.notna(row['q33_accesovivienda_sinprob']):
-            return 'Sin dificultades'
-        if pd.notna(row['q33_accesovivienda_extranjero']) or pd.notna(row['q33_accesovivienda_garantia']):
-            return 'Barreras para alquilar'
-        if pd.notna(row['q33_accesovivienda_costo']) or pd.notna(row['q33_accesovivienda_compra']):
-            return 'Barreras económicas'
-        if pd.notna(row['q33_accesovivienda_programas']):
-            return 'Acceso a programas de vivienda'
-        if pd.notna(row['q33_accesovivienda_otros']):
-            return 'Otras'
-        return np.nan
-
-    df_2020['dificultad_vivienda'] = df_2020.apply(resolver_dificultad_vivienda_2020, axis=1)
-    df_2020['dificultad_vivienda'] = df_2020['dificultad_vivienda'].fillna('Sin dificultades')
+    #DIFICULTADES DE ACCESO A LA VIVIENDA
+    df_2020 = construir_multiseleccion(df_2020, {
+        'vivienda_dificultad_ninguna': ['q33_accesovivienda_sinprob'],
+        'vivienda_dificultad_alquilar': ['q33_accesovivienda_extranjero', 'q33_accesovivienda_garantia'],
+        'vivienda_dificultad_economicas': ['q33_accesovivienda_costo', 'q33_accesovivienda_compra'],
+        'vivienda_dificultad_programas': ['q33_accesovivienda_programas'],
+        'vivienda_dificultad_otras': ['q33_accesovivienda_otros'],
+    })
+    df_2020['vivienda_dificultad_conflictos'] = np.nan
     df_2020.drop(columns=[
         'q33_accesovivienda_sinprob', 'q33_accesovivienda_costo', 'q33_accesovivienda_extranjero',
         'q33_accesovivienda_garantia', 'q33_accesovivienda_compra', 'q33_accesovivienda_programas',
         'q33_accesovivienda_otros'
     ], inplace=True)
 
-    def resolver_dificultad_vivienda_2023(row):
-        if row['q44_vivienda_problemas_no'] == 1.0:
-            return 'Sin dificultades'
-        if row['q44_vivienda_problemas_desalojo'] == 1.0 or row['q44_vivienda_problemas_estafa'] == 1.0:
-            return 'Conflictos habitacionales'
-        if row['q44_vivienda_problemas_discriminacion'] == 1.0 or row['q44_vivienda_problemas_garantia'] == 1.0:
-            return 'Barreras para alquilar'
-        if row['q44_vivienda_problemas_precio'] == 1.0 or row['q44_vivienda_problemas_compra'] == 1.0:
-            return 'Barreras económicas'
-        if row['q44_vivienda_problemas_ayudasocial'] == 1.0:
-            return 'Acceso a programas de vivienda'
-        if row['q44_vivienda_problemas_otra'] == 1.0:
-            return 'Otras'
-        return np.nan
-
-    df_2023['dificultad_vivienda'] = df_2023.apply(resolver_dificultad_vivienda_2023, axis=1)
-    df_2023['dificultad_vivienda'] = df_2023['dificultad_vivienda'].fillna('Sin dificultades')
+    df_2023 = construir_multiseleccion(df_2023, {
+        'vivienda_dificultad_ninguna': ['q44_vivienda_problemas_no'],
+        'vivienda_dificultad_conflictos': ['q44_vivienda_problemas_desalojo', 'q44_vivienda_problemas_estafa'],
+        'vivienda_dificultad_alquilar': ['q44_vivienda_problemas_discriminacion', 'q44_vivienda_problemas_garantia'],
+        'vivienda_dificultad_economicas': ['q44_vivienda_problemas_precio', 'q44_vivienda_problemas_compra'],
+        'vivienda_dificultad_programas': ['q44_vivienda_problemas_ayudasocial'],
+        'vivienda_dificultad_otras': ['q44_vivienda_problemas_otra'],
+    }, columnas_1_0=True, columna_resumen='q44_vivienda_problemas')
     df_2023.drop(columns=[
         'q44_vivienda_problemas', 'q44_vivienda_problemas_no', 'q44_vivienda_problemas_precio',
         'q44_vivienda_problemas_discriminacion', 'q44_vivienda_problemas_garantia', 'q44_vivienda_problemas_compra',
@@ -794,9 +701,8 @@ def run_etl():
         'q45_vivienda_servicios_pavimentacion', 'q45_vivienda_servicios_rec_basura', 'q45_vivienda_servicios_todos'
     ], inplace=True)
 
-    #NIVEL EDUCATIVO (agrupación del anuario)
-    #VALIDAR: agrupación tomada del anuario; a confirmar con coordinación. Los sin dato en 2020
-    # se completan como "Prefiero no responder".
+    #NIVEL EDUCATIVO
+    #VALIDAR: agrupación tomada del anuario; a confirmar con coordinación. Los sin dato en 2020 se completan como "Prefiero no responder".
     mapa_nivel_educativo = {
         'Primario incompleto': 'Hasta secundario incompleto',
         'Primario incompleto o en curso': 'Hasta secundario incompleto',
@@ -828,43 +734,27 @@ def run_etl():
     df_2023['estudiando_actualmente'] = df_2023['q47_estudiando_argentina'].replace({'Si': 'Sí'})
     df_2023.drop(columns=['q47_estudiando_argentina'], inplace=True)
 
-    #TIPO DE ESTUDIO EN CURSO (una sola columna, priorización)
-    # Nota: en 2020 la pregunta se releva como selección única (una sola categoría por persona)
-    # aunque el cuestionario original la presentaba como selección múltiple; en 2023 sí admite
-    # selección múltiple real, por lo que se resuelve a una sola categoría con esta prioridad:
-    # Primario > Secundario > Terciario > Universitario (grado) > Postgrado > Capacitaciones.
-    # "Postgrado" es una categoría nueva de 2023, sin equivalente en 2020. "Capacitaciones" agrupa,
-    # en 2020, cursos de idioma + capacitaciones laborales/profesionales + talleres o cursos generales.
+    #TIPO DE ESTUDIO EN CURSO
     mapa_tipo_estudio_2020 = {
-        'Primario (incluye FinEs, primaria en el marco de bachilleratos populares, CEBA)': 'Primario',
-        'Secundario (incluye FinEs, bachillerato popular, CENS)': 'Secundario',
-        'Terciario': 'Terciario',
-        'Universitario': 'Universitario (grado)',
-        'Cursos de idioma': 'Capacitaciones laborales, profesionales, en oficios, cursos de idioma',
-        'Capacitaciones laborales  o profesionales': 'Capacitaciones laborales, profesionales, en oficios, cursos de idioma',
-        'Talleres o cursos generales (cultura, oficios, etc.)': 'Capacitaciones laborales, profesionales, en oficios, cursos de idioma'
+        'Primario (incluye FinEs, primaria en el marco de bachilleratos populares, CEBA)': 'estudio_primario',
+        'Secundario (incluye FinEs, bachillerato popular, CENS)': 'estudio_secundario',
+        'Terciario': 'estudio_superior',
+        'Universitario': 'estudio_superior',
+        'Cursos de idioma': 'estudio_capacitaciones',
+        'Capacitaciones laborales  o profesionales': 'estudio_capacitaciones',
+        'Talleres o cursos generales (cultura, oficios, etc.)': 'estudio_capacitaciones'
     }
-    df_2020['tipo_estudio'] = df_2020['q39_tipo_estudio'].map(mapa_tipo_estudio_2020)
-    df_2020['tipo_estudio'] = df_2020['tipo_estudio'].fillna('No está realizando estudios')
+    tipo_estudio_2020 = df_2020['q39_tipo_estudio'].map(mapa_tipo_estudio_2020)
+    for columna_nueva in ['estudio_primario', 'estudio_secundario', 'estudio_superior', 'estudio_capacitaciones']:
+        df_2020[columna_nueva] = (tipo_estudio_2020 == columna_nueva).where(df_2020['q39_tipo_estudio'].notna(), np.nan)
     df_2020.drop(columns=['q39_tipo_estudio'], inplace=True)
 
-    def resolver_tipo_estudio_2023(row):
-        if row['q48_estudiando_nivel_prim'] == 1.0:
-            return 'Primario'
-        if row['q48_estudiando_nivel_sec'] == 1.0:
-            return 'Secundario'
-        if row['q48_estudiando_nivel_ter'] == 1.0:
-            return 'Terciario'
-        if row['q48_estudiando_nivel_uni'] == 1.0:
-            return 'Universitario (grado)'
-        if row['q48_estudiando_nivel_postgrado'] == 1.0:
-            return 'Postgrado'
-        if row['q48_estudiando_nivel_capacitaciones'] == 1.0:
-            return 'Capacitaciones laborales, profesionales, en oficios, cursos de idioma'
-        return np.nan
-
-    df_2023['tipo_estudio'] = df_2023.apply(resolver_tipo_estudio_2023, axis=1)
-    df_2023['tipo_estudio'] = df_2023['tipo_estudio'].fillna('No está realizando estudios')
+    df_2023 = construir_multiseleccion(df_2023, {
+        'estudio_primario': ['q48_estudiando_nivel_prim'],
+        'estudio_secundario': ['q48_estudiando_nivel_sec'],
+        'estudio_superior': ['q48_estudiando_nivel_ter', 'q48_estudiando_nivel_uni', 'q48_estudiando_nivel_postgrado'],
+        'estudio_capacitaciones': ['q48_estudiando_nivel_capacitaciones'],
+    }, columnas_1_0=True, columna_resumen='q48_estudiando_nivel')
     df_2023.drop(columns=[
         'q48_estudiando_nivel', 'q48_estudiando_nivel_prim', 'q48_estudiando_nivel_sec',
         'q48_estudiando_nivel_ter', 'q48_estudiando_nivel_uni', 'q48_estudiando_nivel_postgrado',
@@ -872,48 +762,26 @@ def run_etl():
     ], inplace=True)
 
     #INCONVENIENTES DE INSCRIPCION AL ESTUDIO (una sola columna, priorización)
-    #VALIDAR: "problemas con documentación del país de origen"/"equivalencias" (2020) y
-    # "documentación escolar argentina"/"costos"/"títulos y competencias del país de origen" (2023)
-    # no tienen categoría propia en el tablero, se agrupan en "otros". Prioridad: Sin problemas >
-    # Problemas con el DNI > Discriminación o xenofobia > Problemas con la inscripción > otros.
-    def resolver_inconveniente_inscripcion_2020(row):
-        if pd.notna(row['q40_inscripcion_no']):
-            return 'Sin problemas'
-        if pd.notna(row['q40_inscripcion_dni']):
-            return 'Problemas con el DNI'
-        if pd.notna(row['q40_inscripcion_requisitos']):
-            return 'Discriminación o xenofobia'
-        if pd.notna(row['q40_inscripcion_online']):
-            return 'Problemas con la inscripción'
-        if (pd.notna(row['q40_inscripcion_documentacion']) or pd.notna(row['q40_inscripcion_equivalencias'])
-                or pd.notna(row['q40_inscripcion_otros'])):
-            return 'otros'
-        return np.nan
-
-    df_2020['inconveniente_inscripcion_estudio'] = df_2020.apply(resolver_inconveniente_inscripcion_2020, axis=1)
-    df_2020['inconveniente_inscripcion_estudio'] = df_2020['inconveniente_inscripcion_estudio'].fillna('Sin problemas')
+    df_2020 = construir_multiseleccion(df_2020, {
+        'inscripcion_estudio_ninguno': ['q40_inscripcion_no'],
+        'inscripcion_estudio_dni': ['q40_inscripcion_dni'],
+        'inscripcion_estudio_discriminacion': ['q40_inscripcion_requisitos'],
+        'inscripcion_estudio_inscripcion': ['q40_inscripcion_online'],
+        'inscripcion_estudio_otros': ['q40_inscripcion_documentacion', 'q40_inscripcion_equivalencias', 'q40_inscripcion_otros'],
+    })
     df_2020.drop(columns=[
         'q40_inscripcion_no', 'q40_inscripcion_dni', 'q40_inscripcion_requisitos',
         'q40_inscripcion_documentacion', 'q40_inscripcion_equivalencias', 'q40_inscripcion_online',
         'q40_inscripcion_otros'
     ], inplace=True)
 
-    def resolver_inconveniente_inscripcion_2023(row):
-        if row['q49_estudiando_inconvenientes'] == 'No tuve ningún problema':
-            return 'Sin problemas'
-        if row['q50_problemas_dni'] == 1.0:
-            return 'Problemas con el DNI'
-        if row['q50_problemas_discriminacion'] == 1.0:
-            return 'Discriminación o xenofobia'
-        if row['q50_problemas_inscripcion_online'] == 1.0:
-            return 'Problemas con la inscripción'
-        if (row['q50_problemas_doc_escolar'] == 1.0 or row['q50_problemas_costos'] == 1.0
-                or row['q50_problemas_titulos_origen'] == 1.0 or row['q50_problemas_otros'] == 1.0):
-            return 'otros'
-        return np.nan
-
-    df_2023['inconveniente_inscripcion_estudio'] = df_2023.apply(resolver_inconveniente_inscripcion_2023, axis=1)
-    df_2023['inconveniente_inscripcion_estudio'] = df_2023['inconveniente_inscripcion_estudio'].fillna('Sin problemas')
+    df_2023 = construir_multiseleccion(df_2023, {
+        'inscripcion_estudio_dni': ['q50_problemas_dni'],
+        'inscripcion_estudio_discriminacion': ['q50_problemas_discriminacion'],
+        'inscripcion_estudio_inscripcion': ['q50_problemas_inscripcion_online'],
+        'inscripcion_estudio_otros': ['q50_problemas_doc_escolar', 'q50_problemas_costos', 'q50_problemas_titulos_origen', 'q50_problemas_otros'],
+    }, columnas_1_0=True, columna_resumen='q49_estudiando_inconvenientes')
+    df_2023['inscripcion_estudio_ninguno'] = (df_2023['q49_estudiando_inconvenientes'] == 'No tuve ningún problema').where(df_2023['q49_estudiando_inconvenientes'].notna(), np.nan)
     df_2023.drop(columns=[
         'q49_estudiando_inconvenientes', 'q50_estudiando_problemas', 'q50_problemas_titulos_origen',
         'q50_problemas_dni', 'q50_problemas_doc_escolar', 'q50_problemas_inscripcion_online',
@@ -1003,71 +871,27 @@ def run_etl():
     df_2023['dificultad_trabajo_experiencia'] = df_2023['q56_ocupacion_dificultad'].replace({'Si': 'Sí'})
     df_2023.drop(columns=['q56_ocupacion_dificultad'], inplace=True)
 
-    #TIPO DE DIFICULTAD PARA ACCEDER AL TRABAJO (una sola columna, priorización)
-    #VALIDAR: la nota de la tabla de mapeo decía que Q57 estaba excluida de la base pública de
-    # 2023, pero las columnas q57_dificultad_* sí están presentes en el archivo entregado, así que
-    # se usan igual; confirmar con coordinación que corresponde incluirlas. Se resuelve a una sola
-    # categoría por persona con esta prioridad: Convalidación de títulos > Discriminación por ser
-    # extranjero/a > Discriminación por género u orientación sexual > Documentación faltante >
-    # Idioma > Edad > No calificado/sin experiencia previa > Cuidado de personas del hogar >
-    # Condición de salud o discapacidad > Falta de oferta/no consigo trabajo > No sé dónde buscar
-    # trabajo > Prefiero no responder. "Discriminación por género u orientación sexual", "Cuidado
-    # de personas del hogar", "Condición de salud o discapacidad" y "No sé dónde buscar trabajo"
-    # son categorías nuevas de 2023, sin equivalente en 2020.
-    def resolver_dificultad_trabajo_tipo_2020(row):
-        if pd.notna(row['q47_problemas_convalidacion']):
-            return 'Convalidación de títulos'
-        if pd.notna(row['q47_problemas_discriminacion']):
-            return 'Discriminación por ser extranjero/a'
-        if pd.notna(row['q47_problemas_documentos']):
-            return 'Documentación faltante'
-        if pd.notna(row['q47_problemas_idioma']):
-            return 'Idioma'
-        if pd.notna(row['q47_problemas_edad']):
-            return 'Edad'
-        if pd.notna(row['q47_problemas_nocalificado']):
-            return 'No calificado/sin experiencia previa'
-        if pd.notna(row['q47_problemas_trabajo']):
-            return 'Falta de oferta/no consigo trabajo'
-        if pd.notna(row['q47_problemas_norespondo']):
-            return 'Prefiero no responder'
-        return np.nan
-
-    df_2020['tipo_dificultad_trabajo'] = df_2020.apply(resolver_dificultad_trabajo_tipo_2020, axis=1)
+    #TIPO DE DIFICULTAD PARA ACCEDER AL TRABAJO
+    df_2020 = construir_multiseleccion(df_2020, {
+        'trabajo_dificultad_titulos': ['q47_problemas_convalidacion'],
+        'trabajo_dificultad_discriminacion': ['q47_problemas_discriminacion', 'q47_problemas_edad'],
+        'trabajo_dificultad_documentacion': ['q47_problemas_documentos'],
+        'trabajo_dificultad_experiencia': ['q47_problemas_idioma', 'q47_problemas_nocalificado', 'q47_problemas_trabajo'],
+    })
+    df_2020['trabajo_dificultad_hogar'] = np.nan
     df_2020.drop(columns=[
         'q47_problemas_convalidacion', 'q47_problemas_trabajo', 'q47_problemas_discriminacion',
         'q47_problemas_documentos', 'q47_problemas_idioma', 'q47_problemas_nocalificado',
         'q47_problemas_edad', 'q47_problemas_norespondo'
     ], inplace=True)
 
-    def resolver_dificultad_trabajo_tipo_2023(row):
-        if row['q57_dificultad_titulos'] == 1.0:
-            return 'Convalidación de títulos'
-        if row['q57_dificultad_discriminacion'] == 1.0:
-            return 'Discriminación por ser extranjero/a'
-        if row['q57_dificultad_sexual'] == 1.0:
-            return 'Discriminación por género u orientación sexual'
-        if row['q57_dificultad_documentacion'] == 1.0:
-            return 'Documentación faltante'
-        if row['q57_dificultad_idioma'] == 1.0:
-            return 'Idioma'
-        if row['q57_dificultad_edad'] == 1.0:
-            return 'Edad'
-        if row['q57_dificultad_inexperiencia'] == 1.0:
-            return 'No calificado/sin experiencia previa'
-        if row['q57_dificultad_hogar'] == 1.0:
-            return 'Cuidado de personas del hogar'
-        if row['q57_dificultad_salud'] == 1.0:
-            return 'Condición de salud o discapacidad'
-        if row['q57_dificultad_falta_oferta'] == 1.0:
-            return 'Falta de oferta/no consigo trabajo'
-        if row['q57_dificultad_desconocimiento'] == 1.0:
-            return 'No sé dónde buscar trabajo'
-        if row['q57_dificultad_prefiero_no'] == 1.0:
-            return 'Prefiero no responder'
-        return np.nan
-
-    df_2023['tipo_dificultad_trabajo'] = df_2023.apply(resolver_dificultad_trabajo_tipo_2023, axis=1)
+    df_2023 = construir_multiseleccion(df_2023, {
+        'trabajo_dificultad_titulos': ['q57_dificultad_titulos'],
+        'trabajo_dificultad_discriminacion': ['q57_dificultad_discriminacion', 'q57_dificultad_sexual', 'q57_dificultad_edad'],
+        'trabajo_dificultad_hogar': ['q57_dificultad_hogar', 'q57_dificultad_salud'],
+        'trabajo_dificultad_documentacion': ['q57_dificultad_documentacion'],
+        'trabajo_dificultad_experiencia': ['q57_dificultad_idioma', 'q57_dificultad_inexperiencia', 'q57_dificultad_desconocimiento', 'q57_dificultad_falta_oferta'],
+    }, columnas_1_0=True, columna_resumen='q57_dificultad_trabajo')
     df_2023.drop(columns=[
         'q57_dificultad_trabajo', 'q57_dificultad_titulos', 'q57_dificultad_discriminacion',
         'q57_dificultad_hogar', 'q57_dificultad_sexual', 'q57_dificultad_documentacion',
@@ -1154,14 +978,14 @@ def run_etl():
     df_2023['dificultad_gestion_subsidios'] = df_2023['q61_subsidios_problemas']
     df_2023.drop(columns=['q61_subsidios_problemas'], inplace=True)
 
-    # Tablero: pendiente / eliminar esta columna. Pregunta nueva de 2023, sin equivalente en 2020.
+
     df_2023.drop(columns=[
         'q59_gastos', 'q59_gastos_ahorros', 'q59_gastos_préstamos_entorno', 'q59_gastos_préstamos_bancos',
         'q59_gastos_cuotas', 'q59_gastos_fiado', 'q59_gastos_venta_pertenencias', 'q59_gastos_ayuda_estatal',
         'q59_gastos_ayuda_organizaciones', 'q59_gastos_ninguna', 'q59_gastos_prefiero_no'
     ], inplace=True)
 
-    #DISCRIMINACION EXPERIMENTADA (homologado a No / Sí, alguna vez / Sí)
+    #DISCRIMINACION EXPERIMENTADA (No / Sí, alguna vez / Sí)
     df_2020['discriminacion_experimentada'] = df_2020['q53_discriminacion'].replace({
         'No, nunca': 'No',
         'Sí, esporádicamente': 'Sí',
@@ -1176,61 +1000,37 @@ def run_etl():
     })
     df_2023.drop(columns=['q62_discriminacion'], inplace=True)
 
-    #LUGAR DE DISCRIMINACION (una sola columna, priorización)
-    #VALIDAR: "Por parte de fuerzas de seguridad y control" es una categoría nueva de 2023, sin
-    # equivalente en 2020; se agrupa en "Otros" según lo indicado. Prioridad: trámites del Estado >
-    # atención médica > escuela/universidad > trabajo > transporte público > calle > grupos
-    # sociales > medios de comunicación > otros.
-    def resolver_lugar_discriminacion_2020(row):
-        if pd.notna(row['q54_lugares_estado']):
-            return 'Trámites del Estado'
-        if pd.notna(row['q54_lugares_salud']):
-            return 'Atención médica'
-        if pd.notna(row['q54_lugares_estudio']):
-            return 'Escuela y/o universidad'
-        if pd.notna(row['q54_lugares_trabajo']):
-            return 'Trabajo'
-        if pd.notna(row['q54_lugares_transporte']):
-            return 'Transporte público'
-        if pd.notna(row['q54_lugares_calle']):
-            return 'Calle'
-        if pd.notna(row['q54_lugares_grupos']):
-            return 'Grupos sociales'
-        if pd.notna(row['q54_lugares_medios']):
-            return 'Medios de comunicación'
-        if pd.notna(row['q54_lugares_otros']):
-            return 'Otros'
-        return np.nan
-
-    df_2020['lugar_discriminacion'] = df_2020.apply(resolver_lugar_discriminacion_2020, axis=1)
+    #LUGAR DE DISCRIMINACION
+    df_2020 = construir_multiseleccion(df_2020, {
+        'discriminacion_lugar_estado': ['q54_lugares_estado'],
+        'discriminacion_lugar_atencion_medica': ['q54_lugares_salud'],
+        'discriminacion_lugar_educacion': ['q54_lugares_estudio'],
+        'discriminacion_lugar_trabajo': ['q54_lugares_trabajo'],
+        'discriminacion_lugar_transporte': ['q54_lugares_transporte'],
+        'discriminacion_lugar_calle': ['q54_lugares_calle'],
+        'discriminacion_lugar_grupos_sociales': ['q54_lugares_grupos'],
+        'discriminacion_lugar_medios': ['q54_lugares_medios'],
+        'discriminacion_lugar_otros': ['q54_lugares_otros'],
+    })
+    df_2020['discriminacion_lugar_fuerzas_seguridad'] = np.nan
     df_2020.drop(columns=[
         'q54_lugares_estado', 'q54_lugares_salud', 'q54_lugares_estudio', 'q54_lugares_calle',
         'q54_lugares_trabajo', 'q54_lugares_grupos', 'q54_lugares_transporte', 'q54_lugares_medios',
         'q54_lugares_otros'
     ], inplace=True)
 
-    def resolver_lugar_discriminacion_2023(row):
-        if row['q63_discriminacion_estado'] == 1.0:
-            return 'Trámites del Estado'
-        if row['q63_discriminacion_atencion_medica'] == 1.0:
-            return 'Atención médica'
-        if row['q63_discriminacion_educacion'] == 1.0:
-            return 'Escuela y/o universidad'
-        if row['q63_discriminacion_trabajo'] == 1.0:
-            return 'Trabajo'
-        if row['q63_discriminacion_transporte'] == 1.0:
-            return 'Transporte público'
-        if row['q63_discriminacion_calle'] == 1.0:
-            return 'Calle'
-        if row['q63_discriminacion_grupos_sociales'] == 1.0:
-            return 'Grupos sociales'
-        if row['q63_discriminacion_medios_comunicacion'] == 1.0:
-            return 'Medios de comunicación'
-        if row['q63_discriminacion_fuerzas'] == 1.0 or row['q63_discriminacion_otros'] == 1.0:
-            return 'Otros'
-        return np.nan
-
-    df_2023['lugar_discriminacion'] = df_2023.apply(resolver_lugar_discriminacion_2023, axis=1)
+    df_2023 = construir_multiseleccion(df_2023, {
+        'discriminacion_lugar_estado': ['q63_discriminacion_estado'],
+        'discriminacion_lugar_atencion_medica': ['q63_discriminacion_atencion_medica'],
+        'discriminacion_lugar_educacion': ['q63_discriminacion_educacion'],
+        'discriminacion_lugar_trabajo': ['q63_discriminacion_trabajo'],
+        'discriminacion_lugar_transporte': ['q63_discriminacion_transporte'],
+        'discriminacion_lugar_calle': ['q63_discriminacion_calle'],
+        'discriminacion_lugar_grupos_sociales': ['q63_discriminacion_grupos_sociales'],
+        'discriminacion_lugar_medios': ['q63_discriminacion_medios_comunicacion'],
+        'discriminacion_lugar_fuerzas_seguridad': ['q63_discriminacion_fuerzas'],
+        'discriminacion_lugar_otros': ['q63_discriminacion_otros'],
+    }, columnas_1_0=True, columna_resumen='q63_discriminacion')
     df_2023.drop(columns=[
         'q63_discriminacion', 'q63_discriminacion_estado', 'q63_discriminacion_fuerzas',
         'q63_discriminacion_atencion_medica', 'q63_discriminacion_educacion', 'q63_discriminacion_calle',
@@ -1266,62 +1066,39 @@ def run_etl():
     df_2023['violencia_genero'] = df_2023['q65_violencia_genero']
     df_2023.drop(columns=['q65_violencia_genero'], inplace=True)
 
-    #TIPO DE PARTICIPACION EN ORGANIZACIONES (una sola columna, formato 2020)
-    #VALIDAR: en 2020 "Organización social" y "Organización barrial o comunitaria" son categorías
-    # separadas, pero en 2023 se fusionan en una sola ("Organización social, barrial o
-    # comunitaria"); se unifican también en 2020 bajo ese mismo nombre para poder comparar.
-    # "Movimiento social" es una categoría nueva de 2023, sin equivalente en 2020. Prioridad:
-    # No participo en ninguna > Organización de migrantes > Organización social, barrial o
-    # comunitaria > Movimiento social > Partido político > Iglesia o comunidad religiosa >
-    # Cooperativa de trabajo o sindicato > Otra > Prefiero no responder.
-    def resolver_participacion_2020(row):
-        if pd.notna(row['q57_participacion_no']):
-            return 'No participo en ninguna'
-        if pd.notna(row['q57_participacion_orgamigrantes']):
-            return 'Organización de migrantes'
-        if pd.notna(row['q57_participacion_orgasocial']) or pd.notna(row['q57_participacion_orgabarrial']):
-            return 'Organización social, barrial o comunitaria'
-        if pd.notna(row['q57_participacion_partido']):
-            return 'Partido político'
-        if pd.notna(row['q57_participacion_iglesia']):
-            return 'Iglesia o comunidad religiosa'
-        if pd.notna(row['q57_participacion_cooperativa']):
-            return 'Cooperativa de trabajo o sindicato'
-        if pd.notna(row['q57_participacion_otra']):
-            return 'Otra'
-        return np.nan
-
-    df_2020['tipo_participacion_organizacion'] = df_2020.apply(resolver_participacion_2020, axis=1)
-    df_2020['tipo_participacion_organizacion'] = df_2020['tipo_participacion_organizacion'].fillna('Prefiero no responder')
+    #TIPO DE PARTICIPACION EN ORGANIZACIONES
+    cols_participacion_2020 = [
+        'q57_participacion_orgamigrantes', 'q57_participacion_orgasocial', 'q57_participacion_orgabarrial',
+        'q57_participacion_partido', 'q57_participacion_iglesia', 'q57_participacion_cooperativa', 'q57_participacion_otra'
+    ]
+    df_2020['participacion_organizacion'] = pd.Series(np.nan, index=df_2020.index, dtype=object)
+    df_2020.loc[df_2020[cols_participacion_2020].notna().any(axis=1), 'participacion_organizacion'] = 'Sí'
+    df_2020.loc[df_2020['q57_participacion_no'].notna(), 'participacion_organizacion'] = 'No'
+    df_2020 = construir_multiseleccion(df_2020, {
+        'participacion_tipo_migrantes': ['q57_participacion_orgamigrantes'],
+        'participacion_tipo_social_barrial': ['q57_participacion_orgasocial', 'q57_participacion_orgabarrial'],
+        'participacion_tipo_partido': ['q57_participacion_partido'],
+        'participacion_tipo_religiosa': ['q57_participacion_iglesia'],
+        'participacion_tipo_cooperativa': ['q57_participacion_cooperativa'],
+        'participacion_tipo_otra': ['q57_participacion_otra'],
+    })
+    df_2020['participacion_tipo_movimiento_social'] = np.nan
     df_2020.drop(columns=[
         'q57_participacion_no', 'q57_participacion_orgasocial', 'q57_participacion_orgabarrial',
         'q57_participacion_partido', 'q57_participacion_orgamigrantes', 'q57_participacion_iglesia',
         'q57_participacion_cooperativa', 'q57_participacion_otra'
     ], inplace=True)
 
-    def resolver_participacion_2023(row):
-        if row['q66_participacion_organizacion'] == 'No':
-            return 'No participo en ninguna'
-        if row['q66_participacion_organizacion'] == 'Prefiero no responder':
-            return 'Prefiero no responder'
-        if row['q67_organizacion_migrantes'] == 1.0:
-            return 'Organización de migrantes'
-        if row['q67_organizacion_social'] == 1.0:
-            return 'Organización social, barrial o comunitaria'
-        if row['q67_organizacion_movimiento_social'] == 1.0:
-            return 'Movimiento social'
-        if row['q67_organizacion_partido'] == 1.0:
-            return 'Partido político'
-        if row['q67_organizacion_religiosa'] == 1.0:
-            return 'Iglesia o comunidad religiosa'
-        if row['q67_organizacion_cooperativa'] == 1.0:
-            return 'Cooperativa de trabajo o sindicato'
-        if row['q67_organizacion_otra'] == 1.0:
-            return 'Otra'
-        return np.nan
-
-    df_2023['tipo_participacion_organizacion'] = df_2023.apply(resolver_participacion_2023, axis=1)
-    df_2023['tipo_participacion_organizacion'] = df_2023['tipo_participacion_organizacion'].fillna('Prefiero no responder')
+    df_2023['participacion_organizacion'] = df_2023['q66_participacion_organizacion']
+    df_2023 = construir_multiseleccion(df_2023, {
+        'participacion_tipo_migrantes': ['q67_organizacion_migrantes'],
+        'participacion_tipo_social_barrial': ['q67_organizacion_social'],
+        'participacion_tipo_movimiento_social': ['q67_organizacion_movimiento_social'],
+        'participacion_tipo_partido': ['q67_organizacion_partido'],
+        'participacion_tipo_religiosa': ['q67_organizacion_religiosa'],
+        'participacion_tipo_cooperativa': ['q67_organizacion_cooperativa'],
+        'participacion_tipo_otra': ['q67_organizacion_otra'],
+    }, columnas_1_0=True, columna_resumen='q67_organizacion_')
     df_2023.drop(columns=[
         'q66_participacion_organizacion', 'q67_organizacion_', 'q67_organizacion_migrantes',
         'q67_organizacion_social', 'q67_organizacion_movimiento_social', 'q67_organizacion_partido',
@@ -1330,9 +1107,6 @@ def run_etl():
     ], inplace=True)
 
     #VOTO EN ELECCIONES LOCALES (binarizado como 2023)
-    #VALIDAR: "No sabía que tenía este derecho", "No, en mi localidad no reconocen este derecho",
-    # "No me interesa votar" y "No he podido votar" (2020) se agrupan todas en "No", perdiendo el
-    # detalle del motivo por el que no votó (ver motivo_no_voto más abajo).
     df_2020['voto_elecciones_locales'] = df_2020['q58_voto'].replace({
         'Sí, he votado': 'Sí',
         'No sabía que tenía este derecho': 'No',
@@ -1345,55 +1119,29 @@ def run_etl():
     df_2023.drop(columns=['q68_participacion_elecciones_locales'], inplace=True)
 
     #MOTIVO DE NO VOTO
-    def resolver_motivo_no_voto_2020(row):
-        if row['q58_voto'] == 'No sabía que tenía este derecho':
-            return 'No sabía que tenía este derecho'
-        if row['q58_voto'] == 'No me interesa votar':
-            return 'No me interesa votar'
-        if row['q58_voto'] == 'No, en mi localidad no reconocen este derecho':
-            return 'En mi localidad no lo permiten / no está habilitado'
-        if row['q58_voto'] == 'No he podido votar':
-            if pd.notna(row['q59_causas_dni']):
-                return 'No tengo DNI'
-            if pd.notna(row['q59_causas_anios']):
-                return 'No tengo la suficiente antigüedad'
-            if pd.notna(row['q59_causas_padron']):
-                return 'No estoy inscripto/a en el padrón'
-            if pd.notna(row['q59_causas_distancia']):
-                return 'Vivo lejos de las mesas de votación'
-            if pd.notna(row['q59_causas_lugar']):
-                return 'No sé dónde, cómo o qué se vota en las elecciones'
-            if pd.notna(row['q59_causas_nose']):
-                return 'No sabía que tenía este derecho'
-            return np.nan
-        return np.nan
-
-    df_2020['motivo_no_voto'] = df_2020.apply(resolver_motivo_no_voto_2020, axis=1)
+    df_2020['motivo_no_voto_requisitos'] = df_2020[['q59_causas_dni', 'q59_causas_anios', 'q59_causas_padron']].notna().any(axis=1)
+    df_2020['motivo_no_voto_desinformacion'] = (
+        (df_2020['q58_voto'] == 'No sabía que tenía este derecho')
+        | df_2020['q59_causas_nose'].notna() | df_2020['q59_causas_lugar'].notna()
+    )
+    df_2020['motivo_no_voto_desinteres'] = df_2020['q58_voto'] == 'No me interesa votar'
+    df_2020['motivo_no_voto_obstaculos'] = (
+        df_2020['q59_causas_distancia'].notna()
+        | (df_2020['q58_voto'] == 'No, en mi localidad no reconocen este derecho')
+    )
+    for columna in ['motivo_no_voto_requisitos', 'motivo_no_voto_desinformacion', 'motivo_no_voto_desinteres', 'motivo_no_voto_obstaculos']:
+        df_2020[columna] = df_2020[columna].where(df_2020['q58_voto'].notna(), np.nan)
     df_2020.drop(columns=[
         'q58_voto', 'q59_causas_anios', 'q59_causas_distancia', 'q59_causas_dni',
         'q59_causas_lugar', 'q59_causas_nose', 'q59_causas_padron'
     ], inplace=True)
 
-    def resolver_motivo_no_voto_2023(row):
-        if row['q69_participacion_no_sabia'] == 1.0:
-            return 'No sabía que tenía este derecho'
-        if row['q69_participacion_no_interes'] == 1.0:
-            return 'No me interesa votar'
-        if row['q69_participacion_no_dni'] == 1.0:
-            return 'No tengo DNI'
-        if row['q69_participacion_no_antiguedad'] == 1.0:
-            return 'No tengo la suficiente antigüedad'
-        if row['q69_participacion_no_padron'] == 1.0:
-            return 'No estoy inscripto/a en el padrón'
-        if row['q69_participacion_no_lejania'] == 1.0:
-            return 'Vivo lejos de las mesas de votación'
-        if row['q69_participacion_no_desconocimiento'] == 1.0:
-            return 'No sé dónde, cómo o qué se vota en las elecciones'
-        if row['q69_participacion_no_permiso'] == 1.0:
-            return 'En mi localidad no lo permiten / no está habilitado'
-        return np.nan
-
-    df_2023['motivo_no_voto'] = df_2023.apply(resolver_motivo_no_voto_2023, axis=1)
+    df_2023 = construir_multiseleccion(df_2023, {
+        'motivo_no_voto_requisitos': ['q69_participacion_no_dni', 'q69_participacion_no_antiguedad', 'q69_participacion_no_padron'],
+        'motivo_no_voto_desinformacion': ['q69_participacion_no_sabia', 'q69_participacion_no_desconocimiento'],
+        'motivo_no_voto_desinteres': ['q69_participacion_no_interes'],
+        'motivo_no_voto_obstaculos': ['q69_participacion_no_lejania', 'q69_participacion_no_permiso'],
+    }, columnas_1_0=True, columna_resumen='q69_participacion_no_')
     df_2023.drop(columns=[
         'q69_participacion_no_', 'q69_participacion_no_sabia', 'q69_participacion_no_interes',
         'q69_participacion_no_dni', 'q69_participacion_no_antiguedad', 'q69_participacion_no_padron',
@@ -1401,8 +1149,6 @@ def run_etl():
     ], inplace=True)
 
     #VOTO EN ELECCIONES DEL PAIS DE ORIGEN (binarizado Sí/No)
-    #VALIDAR: "No, mi país no lo permite", "No, no sé si mi país lo permite" y "No, no me interesa"
-    # (2020) se agrupan todas en "No", perdiendo el detalle del motivo.
     df_2020['voto_elecciones_pais_origen'] = df_2020['q60_voto_extranjero'].replace({
         'Sí, siempre': 'Sí',
         'Sí, alguna vez': 'Sí',
@@ -1439,11 +1185,11 @@ def run_etl():
     df_2020.drop(columns=['q6_nivel_castellano'], inplace=True)
     df_2023.drop(columns=['q7_nivel_castellano'], inplace=True)
 
-    #naturalizacion
+    #NATURALIZACION
     df_2020.drop(columns=['q16_naturalizacion'], inplace=True)
     df_2023.drop(columns=['q25_naturalizacion'], inplace=True)
 
-    #pandemia
+    #PANDEMIA
     df_2020.drop(columns=[
         'q23_continuidad_no', 'q23_continuidad_mail', 'q23_continuidad_zoom', 'q23_continuidad_radio',
         'q23_continuidad_tv', 'q23_continuidad_plataforma', 'q23_continuidad_telefono',
@@ -1459,8 +1205,6 @@ def run_etl():
     ], inplace=True)
 
     #PESOS MUESTRALES
-    # Nota: mismo concepto (ponderador para estimaciones), distinto nombre entre años. Los valores
-    # vienen con coma como separador decimal en ambos años; se convierten a float con punto.
     df_2020['peso_muestral_total'] = df_2020['pesos_para_estimaciones_totales'].astype(str).str.replace(',', '.').astype(float)
     df_2020['peso_muestral_nacionalidad'] = df_2020['pesos_para_estimaciones_por_nacionalidad'].astype(str).str.replace(',', '.').astype(float)
     df_2020.drop(columns=['pesos_para_estimaciones_totales', 'pesos_para_estimaciones_por_nacionalidad'], inplace=True)
@@ -1483,9 +1227,6 @@ def run_etl():
         'q4_otro', 'q5_descendencia', 'q5_descendencia_otro_descrip', 'q6_idioma', 'q6_otro', 'sec_completo_agrup'
     ], inplace=True)
 
-    print("ETL completado con éxito.")
-    print(" ")
-
     df_2020['Año'] = 2020
     df_2023['Año'] = 2023
 
@@ -1494,14 +1235,8 @@ def run_etl():
 
     df_final = pd.concat([df_2020[columnas_comunes], df_2023[columnas_comunes]], ignore_index=True)
 
-    ruta_salida = r'C:\Users\Usuario\ENMA\data\processed'
-    os.makedirs(ruta_salida, exist_ok=True)
-    ruta_archivo = os.path.join(ruta_salida, 'ENMA.csv')
+    ruta_archivo = os.path.join('data/processed', 'ENMA.csv')
     df_final.to_csv(ruta_archivo, index=False, encoding='utf-8-sig')
-
-    print(" ")
-    print(f"Archivo final guardado en: {ruta_archivo}")
-    print(f"Filas: {len(df_final)} | Columnas: {len(df_final.columns)}")
 
 if __name__ == "__main__":
     run_etl()

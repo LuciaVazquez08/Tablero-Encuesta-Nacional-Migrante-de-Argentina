@@ -1,7 +1,13 @@
 import streamlit as st
 
-from data_utils import aplicar_filtros, filtro_edicion, iniciar_filtros, load_data
+from data_utils import aplicar_filtros, filtro_edicion, iniciar_filtros, load_data, grafico_barras,grafico_multiseleccion
 
+INCONVENIENTES_EDUCACION_HIJOS = [
+    ("hijos_educacion_problema_cupo", "Problemas de cupo en la escuela"),
+    ("hijos_educacion_problema_inscripcion", "Problemas con la inscripción"),
+    ("hijos_educacion_problema_documentacion", "Problemas con la documentación del hijo/a"),
+    ("hijos_educacion_problema_otros", "Otros problemas"),
+]
 
 def render():
     df = load_data()
@@ -13,4 +19,18 @@ def render():
 
     st.title("Hijos/as y educación")
     st.caption("Asistencia educativa de hijos/as e inconvenientes en su inscripción escolar.")
-    st.info("Próximamente")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        grafico_barras(df, "hijos", "Tenencia de hijos/as")
+    with col2:
+        grafico_barras(df, "asistencia_educacion", "Hijos/as que asisten actualmente a la escuela en Argentina")
+
+    sin_problemas = df["hijos_educacion_problema_ninguno"] != True  # noqa: E712
+    grafico_multiseleccion(
+        df[sin_problemas], INCONVENIENTES_EDUCACION_HIJOS,
+        "Inconvenientes para la inscripción escolar de hijos/as",
+        "Qué % de quienes tuvieron algún inconveniente declaró cada tipo. En la edición 2023 la "
+        "pregunta admite selección múltiple (una persona puede haber tenido más de un "
+        "inconveniente); en 2020 se relevó como selección única (un solo inconveniente por persona).",
+    )

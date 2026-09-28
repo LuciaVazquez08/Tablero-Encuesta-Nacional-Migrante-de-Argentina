@@ -25,12 +25,6 @@ POBLACION_TOTAL_LABEL = "Población total"
 COLOR_DETALLE = COLORS["text_3"]
 
 def _tabla_ponderada(df, index_col, columns_col, peso_pais, peso_poblacion, etiqueta_poblacion):
-    """Arma una tabla índice x columnas con los pesos muestrales sumados (no
-    conteo de filas), ordenada de menor a mayor magnitud, y agrega al final
-    una fila `etiqueta_poblacion` con la distribución de toda la población
-    filtrada (ponderada con `peso_poblacion`) como referencia. Devuelve el
-    porcentaje resultante por fila, el peso sumado (para el detalle de
-    "personas") y el orden final de categorías."""
     pivot = df.groupby([index_col, columns_col])[peso_pais].sum().unstack(fill_value=0)
     orden = pivot.sum(axis=1).sort_values().index.tolist()
     pivot = pivot.loc[orden]
@@ -38,7 +32,7 @@ def _tabla_ponderada(df, index_col, columns_col, peso_pais, peso_poblacion, etiq
     poblacion = df.groupby(columns_col)[peso_poblacion].sum().reindex(pivot.columns, fill_value=0)
     pivot.loc[etiqueta_poblacion] = poblacion
 
-    orden_final = orden + [etiqueta_poblacion]
+    orden_final = [etiqueta_poblacion] + orden
     pivot = pivot.loc[orden_final]
 
     tabla = pivot.div(pivot.sum(axis=1), axis=0).mul(100).round(1)
@@ -68,12 +62,11 @@ def _pais_por_genero(df):
         texttemplate="%{text}%", textposition="inside",
         hovertemplate=(
             "%{y}<br>Porcentaje: %{x:.1f}%<br>"
-            f"<span style='color:{COLOR_DETALLE}'>Personas (ponderado): %{{customdata[0]:,.0f}}</span>"
         ),
     )
     fig.update_layout(
         yaxis_title=None, xaxis_title="Porcentaje (%)",
-        margin=dict(t=10, b=10), height=ALTURA_GRANDE,
+        margin=dict(t=25, b=25, l=15, r=15),
     )
     aplicar_tipografia(fig)
     fig.update_yaxes(tickmode="array", tickvals=orden, ticktext=_ticktext_con_referencia(orden), tickfont=dict(size=9))
@@ -98,12 +91,11 @@ def _descendencia_por_pais(df):
         texttemplate="%{text}%", textposition="outside",
         hovertemplate=(
             "%{y}<br>Porcentaje: %{x:.1f}%<br>"
-            f"<span style='color:{COLOR_DETALLE}'>Personas (ponderado): %{{customdata[0]:,.0f}}</span>"
         ),
     )
     fig.update_layout(
         yaxis_title=None, xaxis_title="Porcentaje (%)",
-        margin=dict(t=10, b=10), height=ALTURA_GRANDE,
+        margin=dict(t=25, b=25, l=15, r=15),
     )
     aplicar_tipografia(fig)
     fig.update_xaxes(range=[0, data["Porcentaje"].max() * 1.2])
@@ -127,15 +119,14 @@ def _region_por_edad(df):
         texttemplate="%{text}%", textposition="outside",
         hovertemplate=(
             "%{x}<br>Porcentaje: %{y:.1f}%<br>"
-            f"<span style='color:{COLOR_DETALLE}'>Personas (ponderado): %{{customdata[0]:,.0f}}</span>"
         ),
     )
     fig.update_layout(
         xaxis_title=None, yaxis_title="Porcentaje (%)",
-        legend_title="Rango etario", margin=dict(t=10, b=10), height=ALTURA_CHICA,
+        legend_title="Rango etario", margin=dict(t=25, b=25, l=15, r=15),
     )
     aplicar_tipografia(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def render():

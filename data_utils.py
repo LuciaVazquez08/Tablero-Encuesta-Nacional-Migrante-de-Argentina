@@ -27,20 +27,24 @@ def load_data() -> pd.DataFrame:
 
 def iniciar_filtros() -> "st.delta_generator.DeltaGenerator":
     """Encabezado del panel de filtros de la página + placeholder para el contador
-    de encuestados (se completa recién en aplicar_filtros, una vez armada la máscara)."""
+    de encuestados"""
+    st.session_state["_color_index"] = 0
     st.sidebar.header("Filtros")
     return st.sidebar.empty()
+
+def _siguiente_color() -> str:
+    """Devuelve el próximo color de CHART_SEQUENCE y avanza la rotación un lugar. Todas las
+    barras de un mismo gráfico comparten ese único color"""
+    indice = st.session_state.get("_color_index", 0)
+    st.session_state["_color_index"] = indice + 1
+    return CHART_SEQUENCE[indice % len(CHART_SEQUENCE)]
 
 
 def filtro_edicion(df: pd.DataFrame, key: str, reset_keys: list[str] | None = None) -> pd.Series:
     """Selector de Año. Si se pasan `reset_keys`, al cambiar de año se incrementa
     la "versión" de esos otros widgets (p. ej. el filtro de nacionalidad). Un
     widget de Streamlit conserva su selección en el navegador mientras
-    conserve su `key`, aunque el script borre esa entrada de session_state
-    (el propio frontend reenvía el último valor elegido en cada rerun); la
-    única forma confiable de que vuelva a mostrar todas sus opciones es
-    darle una key nueva, forzando una instancia nueva del widget. Ver
-    `version_key()`."""
+    conserve su `key`, aunque el script borre esa entrada de session_state"""
     anios = sorted(df["Año"].dropna().unique())
     seleccion = st.sidebar.selectbox("Edición / Año", anios, key=key)
     anio_previo_key = f"_{key}_anio_previo"
@@ -53,18 +57,10 @@ def filtro_edicion(df: pd.DataFrame, key: str, reset_keys: list[str] | None = No
     return df["Año"] == seleccion
 
 def version_key(key: str) -> str:
-    """Key efectiva de un widget versionado por `filtro_edicion` (ver ahí):
-    cambia cuando se le pide resetear, lo que fuerza a Streamlit a tratarlo
-    como un widget nuevo en el navegador en vez de arrastrar la selección
-    previa."""
+    """Key efectiva de un widget versionado por `filtro_edicion`"""
     return f"{key}_{st.session_state.get(f'_{key}_version', 0)}"
 
 def filtro_nacionalidad(df: pd.DataFrame, key: str, df_opciones: pd.DataFrame | None = None) -> pd.Series:
-    """`df_opciones` permite calcular las opciones del multiselect sobre un
-    subconjunto (p. ej. ya filtrado por año) sin restringir el propio `df`
-    usado para armar la máscara. `key` es la key lógica del filtro; la key
-    real del widget se versiona (ver `version_key`) para poder resetearlo
-    desde `filtro_edicion`."""
     fuente = df_opciones if df_opciones is not None else df
     nacionalidades = sorted(fuente["pais_nacimiento_var"].dropna().unique())
     seleccion = st.sidebar.multiselect("Nacionalidad", nacionalidades, default=nacionalidades, key=version_key(key))
@@ -89,9 +85,6 @@ def filtro_region(df: pd.DataFrame, key: str) -> pd.Series:
 
 
 def aplicar_filtros(df: pd.DataFrame, mask: pd.Series, contador) -> pd.DataFrame:
-    """Filtra df con la máscara combinada de la página, actualiza el contador de
-    encuestados (en el placeholder reservado por iniciar_filtros) y frena la
-    ejecución si el cruce de filtros no deja ningún registro."""
     df_filtrado = df[mask]
     contador.caption(f"{len(df_filtrado):,}".replace(",", ".") + " personas encuestadas")
     if df_filtrado.empty:
@@ -127,44 +120,88 @@ def grafico_barras(
     titulo: str,
     orden: list | None = None,
     horizontal: bool = False,
-    height: int | None = None,
     columna_peso: str = "peso_muestral_total",
 ):
-    st.subheader(titulo)
-    data = distribucion(df, columna, orden, columna_peso=columna_peso)
-    if data.empty:
-        st.info("Sin datos para este filtro.")
-        return
-    if horizontal:
-        data = data.iloc[::-1]
+    with st.container(border=True, key=f"grafico_{columna}"):
+        st.subheader(titulo)
+        data = distribucion(df, columna, orden, columna_peso=columna_peso)
+        if data.empty:
+            st.info("Sin datos para este filtro.")
+            return
+        color = _siguiente_color()
+        if horizontal:
+            data = data.iloc[::-1]
+            fig = px.bar(
+                data, x="Porcentaje", y=columna, orientation="h",
+                color_discrete_sequence=[color], text="Porcentaje",
+                custom_data=["Cantidad"],
+            )
+            fig.update_layout(yaxis_title=None, xaxis_title="Porcentaje (%)")
+            fig.update_xaxes(range=[0, data["Porcentaje"].max() * 1.18])
+            hovertemplate = (
+                "%{y}<br>Porcentaje: %{x:.1f}%"
+                "<extra></extra>"
+            )
+        else:
+            fig = px.bar(
+                data, x=columna, y="Porcentaje",
+                color_discrete_sequence=[color], text="Porcentaje",
+                custom_data=["Cantidad"],
+            )
+            fig.update_layout(xaxis_title=None, yaxis_title="Porcentaje (%)")
+            fig.update_yaxes(range=[0, data["Porcentaje"].max() * 1.3])
+            hovertemplate = (
+                "%{x}<br>Porcentaje: %{y:.1f}%"
+                "<extra></extra>"
+            )
+        fig.update_traces(texttemplate="%{text}%", textposition="outside", hovertemplate=hovertemplate)
+        fig.update_layout(margin=dict(t=25, b=25, l=15, r=15))
+        aplicar_tipografia(fig)
+        st.plotly_chart(fig, width="stretch")
+
+def _a_binario(serie: pd.Series) -> pd.Series:
+    return pd.to_numeric(serie.replace({True: 1, False: 0, "True": 1, "False": 0}),errors="coerce",)
+
+def grafico_multiseleccion(
+    df: pd.DataFrame,
+    opciones: list[tuple[str, str]],
+    titulo: str,
+    subtitulo: str,
+    columna_peso: str = "peso_muestral_total",
+):
+    columna_base = opciones[0][0]
+    with st.container(border=True, key=f"grafico_{columna_base}"):
+        st.subheader(titulo)
+        st.caption(subtitulo)
+        filas = []
+        for columna, etiqueta in opciones:
+            datos = df.dropna(subset=[columna])
+            if datos.empty:
+                continue
+            seleccionado = _a_binario(datos[columna])
+            peso = datos[columna_peso]
+            total_peso = peso.sum()
+            if not total_peso:
+                continue
+            cantidad = (seleccionado * peso).sum()
+            filas.append({
+                "Opción": etiqueta,
+                "Porcentaje": round(cantidad / total_peso * 100, 1),
+                "Cantidad": round(cantidad),
+            })
+        if not filas:
+            st.info("Sin datos para este filtro.")
+            return
+        data = pd.DataFrame(filas).sort_values("Porcentaje", ascending=True)
         fig = px.bar(
-            data, x="Porcentaje", y=columna, orientation="h",
-            color_discrete_sequence=CHART_SEQUENCE, text="Porcentaje",
+            data, x="Porcentaje", y="Opción", orientation="h",
+            color_discrete_sequence=[_siguiente_color()], text="Porcentaje",
             custom_data=["Cantidad"],
         )
         fig.update_layout(yaxis_title=None, xaxis_title="Porcentaje (%)")
         fig.update_xaxes(range=[0, data["Porcentaje"].max() * 1.18])
-        hovertemplate = (
-            "%{y}<br>Porcentaje: %{x:.1f}%<br>"
-            f"<span style='color:{COLOR_DETALLE}'>Personas (ponderado): %{{customdata[0]:,.0f}}</span>"
-            "<extra></extra>"
-        )
-    else:
-        fig = px.bar(
-            data, x=columna, y="Porcentaje",
-            color_discrete_sequence=CHART_SEQUENCE, text="Porcentaje",
-            custom_data=["Cantidad"],
-        )
-        fig.update_layout(xaxis_title=None, yaxis_title="Porcentaje (%)")
-        fig.update_yaxes(range=[0, data["Porcentaje"].max() * 1.3])
-        hovertemplate = (
-            "%{x}<br>Porcentaje: %{y:.1f}%<br>"
-            f"<span style='color:{COLOR_DETALLE}'>Personas (ponderado): %{{customdata[0]:,.0f}}</span>"
-            "<extra></extra>"
-        )
-    fig.update_traces(texttemplate="%{text}%", textposition="outside", hovertemplate=hovertemplate)
-    fig.update_layout(margin=dict(t=10, b=10))
-    aplicar_tipografia(fig)
-    if height:
-        fig.update_layout(height=height)
-    st.plotly_chart(fig, use_container_width=True)
+        hovertemplate = ("%{y}<br>Porcentaje: %{x:.1f}%""<extra></extra>")
+        fig.update_traces(texttemplate="%{text}%", textposition="outside", hovertemplate=hovertemplate)
+        fig.update_layout(margin=dict(t=25, b=25, l=15, r=15))
+        aplicar_tipografia(fig)
+        st.plotly_chart(fig, width="stretch")
