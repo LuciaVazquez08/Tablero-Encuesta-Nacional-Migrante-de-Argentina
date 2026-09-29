@@ -15,9 +15,6 @@ from enma_palette import CHART_SEQUENCE, COLORS
 
 PERIODO_RESIDENCIA_ORDEN = ["Hasta 5 años", "Entre 5 y 9 años", "Más de 10 años"]
 
-ALTURA_GRANDE = 300
-ALTURA_CHICA = 180
-
 PESO_TOTAL = "peso_muestral_total"
 PESO_NACIONALIDAD = "peso_muestral_nacionalidad"
 
@@ -152,6 +149,6 @@ def render():
     with col3:
         _region_por_edad(df)
     with col4:
-        grafico_barras(df, "idioma_var", "Lenguas habladas", horizontal=True, height=ALTURA_CHICA, columna_peso=PESO_TOTAL)
+        grafico_barras(df, "idioma_var", "Lenguas habladas", horizontal=True, columna_peso=PESO_TOTAL)
     with col5:
-        grafico_barras(df, "periodo_residencia", "Años de residencia", orden=PERIODO_RESIDENCIA_ORDEN, height=ALTURA_CHICA, columna_peso=PESO_TOTAL)
+        grafico_barras(df, "periodo_residencia", "Años de residencia", orden=PERIODO_RESIDENCIA_ORDEN, columna_peso=PESO_TOTAL)

@@ -28,6 +28,8 @@ def render():
     with col2:
         grafico_barras(df, "solicitud_asilo_refugio", "Solicitud de asilo, refugio o visado humanitario")
 
+    grafico_barras(df, "dni_tuvo_dificultad", "Tuvo dificultad para tramitar o renovar el DNI", horizontal=True)
+    
     grafico_multiseleccion(
         df, DIFICULTADES_DNI,
         "Tipos de dificultades para tramitar o renovar el DNI",
