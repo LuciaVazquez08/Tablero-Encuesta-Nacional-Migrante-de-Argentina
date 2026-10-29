@@ -1,11 +1,11 @@
 import streamlit as st
 
-from data_utils import aplicar_filtros, filtro_edicion, iniciar_filtros, load_data, grafico_barras,grafico_multiseleccion
+from data_utils import aplicar_filtros, filtro_cruce, filtro_edicion, grafico_barras, grafico_multiseleccion, iniciar_filtros, load_data
 
 INCONVENIENTES_EDUCACION_HIJOS = [
     ("hijos_educacion_problema_cupo", "Problemas de cupo en la escuela"),
     ("hijos_educacion_problema_inscripcion", "Problemas con la inscripción"),
-    ("hijos_educacion_problema_documentacion", "Problemas con la documentación del hijo/a"),
+    ("hijos_educacion_problema_documentacion", "Problemas con la documentación"),
     ("hijos_educacion_problema_otros", "Otros problemas"),
 ]
 
@@ -16,15 +16,16 @@ def render():
     mask = filtro_edicion(df, "hijos_edicion")
 
     df = aplicar_filtros(df, mask, contador)
+    filtro_cruce(df, "hijos_cruce")
 
     st.title("Hijos/as y educación")
     st.caption("Asistencia educativa de hijos/as e inconvenientes en su inscripción escolar.")
 
     col1, col2 = st.columns(2)
     with col1:
-        grafico_barras(df, "hijos", "Tenencia de hijos/as")
+        grafico_barras(df, "hijos", "Distribución por tenencia de hijos/as")
     with col2:
-        grafico_barras(df, "asistencia_educacion", "Hijos/as que asisten actualmente a la escuela en Argentina")
+        grafico_barras(df, "asistencia_educacion", "Distribución por asistencia escolar de hijos/as en Argentina")
 
     sin_problemas = df["hijos_educacion_problema_ninguno"] != True  # noqa: E712
     grafico_multiseleccion(

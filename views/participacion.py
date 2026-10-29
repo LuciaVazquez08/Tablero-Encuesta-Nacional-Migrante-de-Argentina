@@ -1,6 +1,6 @@
 import streamlit as st
 
-from data_utils import aplicar_filtros, filtro_edicion, iniciar_filtros, load_data, grafico_barras,grafico_multiseleccion
+from data_utils import aplicar_filtros, filtro_cruce, filtro_edicion, grafico_barras, grafico_multiseleccion, iniciar_filtros, load_data
 
 TIPO_ORGANIZACION = [
     ("participacion_tipo_migrantes", "Organización de migrantes"),
@@ -26,11 +26,12 @@ def render():
     mask = filtro_edicion(df, "participacion_edicion")
 
     df = aplicar_filtros(df, mask, contador)
+    filtro_cruce(df, "participacion_cruce")
 
     st.title("Participación social y política")
     st.caption("Participación en organizaciones, voto en Argentina y en el país de origen, y percepción sobre la vida en Argentina.")
 
-    grafico_barras(df, "participacion_organizacion", "Participación en organizaciones sociales, comunitarias o políticas")
+    grafico_barras(df, "participacion_organizacion", "Distribución por participación en organizaciones sociales, comunitarias o políticas")
 
     no_participa = df["participacion_organizacion"] != "No"
     grafico_multiseleccion(
@@ -41,9 +42,10 @@ def render():
 
     col1, col2 = st.columns(2)
     with col1:
-        grafico_barras(df, "voto_elecciones_locales", "Votó en elecciones locales en Argentina")
+        grafico_barras(df, "voto_elecciones_locales", "Distribución por voto en elecciones locales en Argentina")
     with col2:
-        grafico_barras(df, "voto_elecciones_pais_origen", "Votó en elecciones de su país de origen")
+        grafico_barras(df, "voto_elecciones_pais_origen", "Distribución por voto en elecciones de su país de origen")
+
     no_voto_local = df["voto_elecciones_locales"] != "Sí"
     grafico_multiseleccion(
         df[no_voto_local], MOTIVOS_NO_VOTO_LOCAL,
@@ -52,4 +54,5 @@ def render():
         "múltiple (una persona puede tener más de un motivo); en 2020 era mayormente de opción "
         "única, salvo entre quienes no pudieron votar, donde sí podían marcar más de una causa.",
     )
-    grafico_barras(df, "motivo_no_voto_extranjero", "Motivo de no participación en elecciones del país de origen", horizontal=True)
+
+    grafico_barras(df, "motivo_no_voto_extranjero", "Distribución por motivo de no participación en elecciones del país de origen", horizontal=True)

@@ -1,6 +1,6 @@
 import streamlit as st
 
-from data_utils import aplicar_filtros, filtro_edicion, iniciar_filtros, load_data, grafico_barras,grafico_multiseleccion
+from data_utils import aplicar_filtros, filtro_cruce, filtro_edicion, grafico_barras, grafico_multiseleccion, iniciar_filtros, load_data
 
 PROBLEMAS_VIVIENDA = [
     ("vivienda_dificultad_alquilar", "Barreras para alquilar"),
@@ -17,10 +17,12 @@ def render():
     mask = filtro_edicion(df, "vivienda_edicion")
 
     df = aplicar_filtros(df, mask, contador)
+    filtro_cruce(df, "vivienda_cruce")
 
     st.title("Vivienda")
+    st.caption("Tenencia de la vivienda y dificultades de acceso.")
 
-    grafico_barras(df, "vivienda_tenencia", "Condición de tenencia de la vivienda")
+    grafico_barras(df, "vivienda_tenencia", "Distribución por condición de tenencia de la vivienda")
 
     sin_dificultades = df["vivienda_dificultad_ninguna"] != True  # noqa: E712
     grafico_multiseleccion(

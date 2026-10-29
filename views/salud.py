@@ -1,6 +1,6 @@
 import streamlit as st
 
-from data_utils import aplicar_filtros, filtro_edicion, iniciar_filtros, load_data, grafico_barras,grafico_multiseleccion
+from data_utils import aplicar_filtros, filtro_cruce, filtro_edicion, grafico_barras, grafico_multiseleccion, iniciar_filtros, load_data
 
 FORMAS_ACCESO_SALUD = [
     ("salud_acceso_publica", "Salud pública"),
@@ -15,7 +15,7 @@ TIPOS_DIFICULTAD_SALUD = [
     ("salud_dificultad_maltrato", "Maltrato o discriminación"),
     ("salud_dificultad_economicas", "Barreras económicas"),
     ("salud_dificultad_administrativas", "Barreras administrativas"),
-    ("salud_dificultad_comunicacion", "Barreras de comunicación (idioma)"),
+    ("salud_dificultad_comunicacion", "Barreras de comunicación"),
     ("salud_dificultad_acceso_servicio", "Barreras de acceso al servicio (turnos, distancia)"),
     ("salud_dificultad_otras", "Otras"),
 ]
@@ -27,21 +27,24 @@ def render():
     mask = filtro_edicion(df, "salud_edicion")
 
     df = aplicar_filtros(df, mask, contador)
+    filtro_cruce(df, "salud_cruce")
 
     st.title("Derecho a la salud")
     st.caption("Cobertura, acceso y dificultades relacionadas con la atención de la salud.")
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
-        grafico_barras(df, "salud_cobertura", "Cobertura de salud")
+        grafico_barras(df, "salud_cobertura", "Distribución por cobertura de salud")
     with col2:
-        grafico_barras(df, "salud_problemas", "Tuvo algún problema de salud")
+        grafico_barras(df, "salud_problemas", "Distribución por problemas de salud")
+
+    col3, _ = st.columns(2)
     with col3:
-        grafico_barras(df, "salud_dificultad_acceso", "Frecuencia de dificultades para acceder a la salud")
+        grafico_barras(df, "salud_dificultad_acceso", "Distribución por frecuencia de dificultades para acceder a la salud")
 
     grafico_multiseleccion(
         df, FORMAS_ACCESO_SALUD,
-        "Formas de acceso a la atención de la salud",
+        "Distribución por formas de acceso a la atención de la salud",
         "Qué % de la población accedió (o intentó acceder) a la salud por cada vía en los últimos dos años (pregunta de selección múltiple).",
     )
 

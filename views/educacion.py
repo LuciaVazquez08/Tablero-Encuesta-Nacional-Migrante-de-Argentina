@@ -1,6 +1,6 @@
 import streamlit as st
 
-from data_utils import aplicar_filtros, filtro_edicion, iniciar_filtros, load_data, grafico_barras,grafico_multiseleccion
+from data_utils import aplicar_filtros, filtro_cruce, filtro_edicion, grafico_barras, grafico_multiseleccion, iniciar_filtros, load_data
 
 TIPO_ESTUDIO = [
     ("estudio_primario", "Primario"),
@@ -23,25 +23,27 @@ def render():
     mask = filtro_edicion(df, "educacion_edicion")
 
     df = aplicar_filtros(df, mask, contador)
+    filtro_cruce(df, "educacion_cruce")
 
     st.title("Trayectoria educativa (adultos/as)")
     st.caption("Nivel educativo alcanzado y situación educativa actual de la población encuestada.")
 
     col1, col2 = st.columns(2)
     with col1:
-        grafico_barras(df, "nivel_educativo_agrup", "Máximo nivel educativo alcanzado")
+        grafico_barras(df, "nivel_educativo_agrup", "Distribución por máximo nivel educativo alcanzado")
     with col2:
-        grafico_barras(df, "estudiando_actualmente", "Está estudiando actualmente")
+        grafico_barras(df, "estudiando_actualmente", "Distribución por condición de estudio actual")
 
     grafico_multiseleccion(
         df, TIPO_ESTUDIO,
-        "Tipo de estudios que cursa actualmente",
+        "Distribución por tipo de estudios que cursa actualmente",
         "Qué % de quienes estudian actualmente cursa cada tipo de estudio. En la edición 2023 la "
         "pregunta admite selección múltiple (una persona puede cursar más de un tipo a la vez); "
         "en 2020 se relevó como selección única (un solo tipo por persona).",
     )
 
-    sin_inconvenientes = df["inscripcion_estudio_ninguno"] != True  # noqa: E712
+    sin_inconvenientes = df["inscripcion_estudio_ninguno"] != True 
+    
     grafico_multiseleccion(
         df[sin_inconvenientes], INCONVENIENTES_INSCRIPCION,
         "Inconvenientes para la inscripción en el nivel educativo en curso",
