@@ -2,7 +2,7 @@
 
 Este proyecto consiste en el desarrollo de un tablero interactivo diseñado con *Streamlit* para la exploración y análisis de los datos de la **Encuesta Nacional de Migrantes Argentina (ENMA)** en sus ediciones 2020 y 2023.
 
-El objetivo principal es proporcionar a investigadores, organismos y al público general una herramienta autónoma y sencilla para obtener **metricas** y visualizar **KPIs** (Indicadores Clave de Desempeño) sobre las trayectorias migratorias, acceso a derechos y condiciones de vida de la población migrante.
+El objetivo principal es proporcionar a investigadores, organismos y al público general una herramienta autónoma y sencilla para obtener **metricas** sobre las trayectorias migratorias, acceso a derechos y condiciones de vida de la población migrante.
 
 🔗 **Fuente oficial de datos:** [encuestamigrante.ar](https://www.encuestamigrante.ar/)
 
@@ -20,7 +20,7 @@ El objetivo principal es proporcionar a investigadores, organismos y al público
 
 * **Lenguaje:** Python
 * **Procesamiento (ETL):** Pandas y NumPy.
-* **Visualización:** Plotly, Seaborn, Matplotlib, HoloViews, hvPlot.
+* **Visualización:** Plotly
 * **Framework de Aplicación:** Streamlit.
 
 ## 📁 Estructura del Repositorio
