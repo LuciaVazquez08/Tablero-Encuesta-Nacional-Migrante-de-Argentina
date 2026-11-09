@@ -260,7 +260,7 @@ def _grafico_cruce_simple(df, columna, titulo, orden, cruce):
         )
         fig.update_layout(
             xaxis_title=None,
-            legend=dict(orientation="h", yanchor="bottom", y=1.0, xanchor="left", x=0, title_text=None),
+                    legend=dict(orientation="h", x=0.5, xanchor="center", yanchor="bottom", y=1.02, title_text=None),
             margin=dict(t=10, b=10, l=10, r=30),
         )
         fig.update_xaxes(range=[0, 101], tickvals=[0, 25, 50, 75, 100], ticktext=["0%", "25%", "50%", "75%", "100%"])

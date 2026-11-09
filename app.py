@@ -34,7 +34,7 @@ paginas = [
     st.Page(salud.render, title="Derecho a la salud", url_path="derecho-a-la-salud"),
     st.Page(vivienda.render, title="Vivienda", url_path="vivienda"),
     st.Page(educacion.render, title="Trayectoria educativa", url_path="trayectoria-educativa-adultos"),
-    st.Page(trabajo.render, title="Situación socioeconómica", url_path="situacion-socioeconomica"),
+    st.Page(trabajo.render, title="Situación Económica", url_path="situacion-socioeconomica"),
     st.Page(discriminacion_violencia.render, title="Discriminación y violencia", url_path="discriminacion-y-violencia"),
     st.Page(participacion.render, title="Participación social y política", url_path="participacion-social-y-politica"),
 ]

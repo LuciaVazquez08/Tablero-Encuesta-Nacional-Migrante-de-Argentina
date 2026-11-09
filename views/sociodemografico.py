@@ -1,12 +1,17 @@
+import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from data_utils import PESO_NACIONALIDAD, PERIODO_RESIDENCIA_ORDEN, PESO_TOTAL, POBLACION_TOTAL_LABEL, TAMANIO_EJE_CATEGORIAS, TEXTO_PORCENTAJE_ENTERO
+from data_utils import PESO_NACIONALIDAD, PERIODO_RESIDENCIA_ORDEN, NOTA_RESPUESTA_MULTIPLE, PESO_TOTAL, POBLACION_TOTAL_LABEL, TAMANIO_EJE_CATEGORIAS, TEXTO_PORCENTAJE_ENTERO, _a_binario
 from data_utils import aplicar_filtros, aplicar_tipografia, formatear_n, filtro_edicion, iniciar_filtros, load_data, nota_ponderacion
 from enma_palette import CHART_SEQUENCE, COLORS
 
-DESCENDENCIA_ORDEN = ["Afrodescendiente", "Descendencia Asiática", "Descendencia Indígena", "Ninguna de las anteriores"]
-DESCENDENCIA_SIN_GRAFICAR = ["Ninguna de las anteriores"]
+DESCENDENCIA_OPCIONES = [
+    ("descendencia_afro", "Afrodescendiente"),
+    ("descendencia_asiatica", "Descendencia Asiática"),
+    ("descendencia_indigena", "Descendencia Indígena"),
+    ("descendencia_otra", "Otra"),
+]
 
 IDIOMA_ORDEN = ["Español / Castellano", "Guaraní", "Portugués", "Quechua", "Creole haitiano", "Wolof", "Francés", "Otro"]
 IDIOMA_COLORES = dict(zip(IDIOMA_ORDEN, CHART_SEQUENCE))
@@ -69,6 +74,56 @@ def _datos_por_pais(df, columna, sin_graficar=()):
     data_cantidad = conteo.reset_index().melt(id_vars="pais_nacimiento_var", var_name="Categoría", value_name="Cantidad")
     return data.merge(data_cantidad, on=["pais_nacimiento_var", "Categoría"]), orden
 
+def _datos_por_pais_multiple(df, opciones):
+    """Como `_datos_por_pais`, para preguntas de selección múltiple (una columna booleana por opción,
+    en `opciones` como (columna, etiqueta)): % ponderado de quienes respondieron la pregunta que marcó
+    cada opción, por país (ponderador intra nacionalidad) y en la fila de Población migrante total
+    (ponderador general). Las opciones no son excluyentes: los % de una fila no suman 100."""
+    respondieron = df[df[[c for c, _ in opciones]].notna().any(axis=1)]
+    paises = respondieron.groupby("pais_nacimiento_var")[PESO_NACIONALIDAD].sum().sort_values().index.tolist()
+    orden = [POBLACION_TOTAL_LABEL] + paises
+    filas = []
+    for fila in orden:
+        if fila == POBLACION_TOTAL_LABEL:
+            sub, peso = respondieron, PESO_TOTAL
+        else:
+            sub, peso = respondieron[respondieron["pais_nacimiento_var"] == fila], PESO_NACIONALIDAD
+        for columna, etiqueta in opciones:
+            datos = sub[sub[columna].notna()]
+            if datos.empty or not datos[peso].sum():
+                continue
+            cantidad = (_a_binario(datos[columna]) * datos[peso]).sum()
+            filas.append({
+                "pais_nacimiento_var": fila, "Categoría": etiqueta,
+                "Porcentaje": cantidad / datos[peso].sum() * 100, "Cantidad": cantidad,
+            })
+    return pd.DataFrame(filas), orden, len(respondieron)
+
+
+def _multiple_por_pais(df, opciones, titulo, key, rango_max, subtitulo):
+    """Barras agrupadas por país para una pregunta de selección múltiple, con el mismo formato que
+    `_agrupado_por_pais`. Las opciones sin dato en la edición (p. ej. "Otra" en 2020) no se muestran."""
+    with st.container(border=True, key=key):
+        st.subheader(titulo)
+        st.caption(f"{NOTA_RESPUESTA_MULTIPLE} {subtitulo}")
+        data, orden, n = _datos_por_pais_multiple(df, opciones)
+        categorias = [e for _, e in opciones if e in set(data["Categoría"])]
+        fig = px.bar(
+            data, x="Porcentaje", y="pais_nacimiento_var", color="Categoría",
+            orientation="h", barmode="group",
+            category_orders={"pais_nacimiento_var": orden, "Categoría": categorias},
+            color_discrete_map=dict(zip(categorias, COLORES_CATEGORIAS)),
+            text="Porcentaje", custom_data=["Cantidad"],
+        )
+        fig.update_traces(textposition="outside")
+        _formato_por_pais(fig, orden, rango_max)
+        st.plotly_chart(fig, width="stretch")
+        nota_ponderacion(
+            n,
+            "Países ponderados por nacionalidad; Población migrante total ponderada con el ponderador general",
+        )
+
+
 
 def _formato_por_pais(fig, orden, rango_max):
     """Formato común de los gráficos según país de origen: leyenda horizontal arriba, sin títulos de
@@ -80,7 +135,7 @@ def _formato_por_pais(fig, orden, rango_max):
     )
     fig.update_layout(
         yaxis_title=None, xaxis_title=None,
-        legend=dict(orientation="h", yanchor="bottom", y=1.0, xanchor="left", x=0, title_text=None),
+                        legend=dict(orientation="h", x=0.5, xanchor="center", yanchor="bottom", y=1.02, title_text=None),
         margin=dict(t=10, b=10, l=10, r=30),
     )
     marcas = list(range(0, rango_max + 1, 25))
@@ -142,9 +197,10 @@ def _pais_por_genero(df):
     )
 
 def _descendencia_por_pais(df):
-    _agrupado_por_pais(
-        df, "descendencia", "Pertenencia afrodescendiente y otras según país de origen", "grafico_descendencia",
-        DESCENDENCIA_ORDEN, rango_max=75, sin_graficar=DESCENDENCIA_SIN_GRAFICAR,
+    _multiple_por_pais(
+        df, DESCENDENCIA_OPCIONES, "Pertenencia afrodescendiente y otras según país de origen",
+        "grafico_descendencia", rango_max=80,
+        subtitulo="En 2023 la pregunta admite más de una opción; en 2020 se relevó con una sola opción por persona.",
     )
 
 def _idioma_por_pais(df):
@@ -180,7 +236,8 @@ def _region_por_edad(df):
         )
         fig.update_layout(
             xaxis_title=None, yaxis_title="Porcentaje (%)",
-            legend_title="Rango etario", margin=dict(t=25, b=25, l=15, r=15),
+                        legend=dict(orientation="h", x=0.5, xanchor="center", yanchor="bottom", y=1.02, title_text=None),
+            margin=dict(t=25, b=25, l=15, r=15),
         )
         aplicar_tipografia(fig)
         fig.update_xaxes(tickfont=dict(size=TAMANIO_EJE_CATEGORIAS))

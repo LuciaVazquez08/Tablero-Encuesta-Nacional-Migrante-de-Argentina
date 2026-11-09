@@ -11,6 +11,23 @@ FORMAS_ACCESO_SALUD = [
     ("salud_acceso_otro", "Otro"),
 ]
 
+ENFERMEDADES_2020 = [
+    ("salud_enfermedad_ninguna", "No tiene ninguna enfermedad"),
+    ("salud_enfermedad_cardiovascular", "Enfermedad cardiovascular"),
+    ("salud_enfermedad_diabetes", "Diabetes"),
+    ("salud_enfermedad_respiratoria", "Enfermedad respiratoria crónica"),
+    ("salud_enfermedad_cancer", "Cáncer"),
+    ("salud_enfermedad_renal", "Enfermedad renal"),
+    ("salud_enfermedad_otra", "Otras"),
+]
+
+MOTIVOS_ACUDIO_2023 = [
+    ("salud_motivo_fisica", "Salud física"),
+    ("salud_motivo_mental", "Salud mental"),
+    ("salud_motivo_sexual_reproductiva", "Salud sexual y/o reproductiva"),
+    ("salud_motivo_no_acudio", "No acudió al sistema de salud"),
+]
+
 TIPOS_DIFICULTAD_SALUD = [
     ("salud_dificultad_maltrato", "Maltrato o discriminación"),
     ("salud_dificultad_economicas", "Barreras económicas"),
@@ -36,12 +53,24 @@ def render():
     with col1:
         grafico_barras(df, "salud_cobertura", "Distribución por cobertura de salud")
     with col2:
-        grafico_barras(df, "salud_problemas", "Distribución por problemas de salud")
-
-    col3, _ = st.columns(2)
-    with col3:
         grafico_barras(df, "salud_dificultad_acceso", "Distribución por frecuencia de dificultades para acceder a la salud")
 
+    if (df["Año"] == 2020).all():
+        grafico_multiseleccion(
+            df, ENFERMEDADES_2020,
+            "Distribución por enfermedades crónicas declaradas",
+            "Qué % de quienes respondieron declaró tener cada enfermedad (pregunta solo de la edición "
+            "2020; no es comparable con la de 2023, que pregunta por qué motivos acudió al sistema de salud).",
+        )
+    else:
+        grafico_multiseleccion(
+            df, MOTIVOS_ACUDIO_2023,
+            "Distribución por motivos para acudir al sistema de salud",
+            "Qué % de quienes respondieron acudió al sistema de salud en los últimos 2 años por cada "
+            "motivo (pregunta solo de la edición 2023; no es comparable con la de 2020, que pregunta "
+            "por enfermedades crónicas).",
+        )
+    
     grafico_multiseleccion(
         df, FORMAS_ACCESO_SALUD,
         "Distribución por formas de acceso a la atención de la salud",

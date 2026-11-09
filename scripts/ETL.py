@@ -180,7 +180,7 @@ def mapear_hijos_2023(row):
         elif tiene_ext:
             return "Sí, nacidos en otro país"
         else:
-            return "Prefiero no responder"
+            return "Sí, sin detalle de lugar de nacimiento"
     
     return np.nan
 
@@ -225,11 +225,24 @@ def run_etl():
     df_2023['idioma_var'] = df_2023['idioma'].where(df_2023['idioma'].isin(top7), other='Otro')
 
     #DESCENDENCIA
-    df_2020["descendencia"] = df_2020['q4_descendientes']
-    df_2020.replace({'descendencia': {'Asiático/a o descendiente de asiático/a.':'Descendencia Asiática', np.nan: 'Ninguna de las anteriores', 'Indígena o descendiente de pueblos indígenas u originarios': 'Descendencia Indígena', 'Afrodescendiente, africano o afroargentino/a': 'Afrodescendiente'}}, inplace=True)
+    mapa_descendencia_2020 = {
+        'descendencia_afro': 'Afrodescendiente, africano o afroargentino/a',
+        'descendencia_indigena': 'Indígena o descendiente de pueblos indígenas u originarios',
+        'descendencia_asiatica': 'Asiático/a o descendiente de asiático/a.',
+        'descendencia_ninguna': 'Ninguna de las anteriores',
+    }
+    for columna_nueva, valor in mapa_descendencia_2020.items():
+        df_2020[columna_nueva] = (df_2020['q4_descendientes'] == valor).where(df_2020['q4_descendientes'].notna(), np.nan)
+    df_2020['descendencia_otra'] = np.nan
     df_2020.drop(columns=['q4_descendientes'], inplace=True)
 
-    df_2023["descendencia"] = np.where(df_2023['q5_descendencia_afro'] == 1, 'Afrodescendiente',np.where(df_2023['q5_descendencia_indigena'] == 1, 'Descendencia Indígena', np.where(df_2023['q5_descendencia_asiatica'] == 1, 'Descendencia Asiática', 'Ninguna de las anteriores')))
+    df_2023 = construir_multiseleccion(df_2023, {
+        'descendencia_afro': ['q5_descendencia_afro'],
+        'descendencia_indigena': ['q5_descendencia_indigena'],
+        'descendencia_asiatica': ['q5_descendencia_asiatica'],
+        'descendencia_ninguna': ['q5_descendencia_ninguno'],
+        'descendencia_otra': ['q5_descendencia_otro'],
+    }, columnas_1_0=True, columna_resumen='q5_descendencia')
     df_2023.drop(columns=['q5_descendencia_afro', 'q5_descendencia_indigena', 'q5_descendencia_asiatica', 'q5_descendencia_ninguno', 'q5_descendencia_otro'], inplace=True)
 
     # REGION
@@ -364,39 +377,31 @@ def run_etl():
     df_2023['salud_cobertura'] = df_2023['q36_salud']
     df_2023.drop(columns=['q36_salud'], inplace=True)
 
-    def resolver_problemas_salud_2020(row):
-        if pd.notna(row['q29_enfermedad_ninguna']):
-            return 'No'
+    columnas_enfermedad_2020 = {
+        'salud_enfermedad_ninguna': ['q29_enfermedad_ninguna'],
+        'salud_enfermedad_cardiovascular': ['q29_enfermedad_cardio'],
+        'salud_enfermedad_cancer': ['q29_enfermedad_cancer'],
+        'salud_enfermedad_respiratoria': ['q29_enfermedad_respiratoria'],
+        'salud_enfermedad_diabetes': ['q29_enfermedad_diabetes'],
+        'salud_enfermedad_renal': ['q30_enfermedad_renal'],
+        'salud_enfermedad_otra': ['q30_enfermedad_otra'],
+    }
 
-        columnas_enfermedad = [
-            'q29_enfermedad_cardio', 'q29_enfermedad_cancer', 'q29_enfermedad_respiratoria',
-            'q29_enfermedad_diabetes', 'q30_enfermedad_renal', 'q30_enfermedad_otra'
-        ]
-        if row[columnas_enfermedad].notna().any():
-            return 'Sí'
+    columnas_motivo_2023 = {
+        'salud_motivo_fisica': ['q37_salud_problemas_fisica'],
+        'salud_motivo_mental': ['q37_salud_problemas_mental'],
+        'salud_motivo_sexual_reproductiva': ['q37_salud_problemas_esi'],
+        'salud_motivo_no_acudio': ['q37_salud_problemas_no'],
+    }
+    df_2020 = construir_multiseleccion(df_2020, columnas_enfermedad_2020)
+    for columna in columnas_motivo_2023:
+        df_2020[columna] = np.nan
+    df_2020.drop(columns=[c for cols in columnas_enfermedad_2020.values() for c in cols], inplace=True)
 
-        return 'Prefiero no responder'
-
-    df_2020['salud_problemas'] = df_2020.apply(resolver_problemas_salud_2020, axis=1)
-    df_2020.drop(columns=[
-        'q29_enfermedad_ninguna', 'q29_enfermedad_cardio', 'q29_enfermedad_cancer',
-        'q29_enfermedad_respiratoria', 'q29_enfermedad_diabetes', 'q30_enfermedad_renal', 'q30_enfermedad_otra'
-    ], inplace=True)
-
-    def resolver_problemas_salud_2023(row):
-        if row['q37_salud_problemas_no'] == 1.0:
-            return 'No'
-        if (row['q37_salud_problemas_fisica'] == 1.0
-                or row['q37_salud_problemas_mental'] == 1.0
-                or row['q37_salud_problemas_esi'] == 1.0):
-            return 'Sí'
-        return 'Prefiero no responder'
-
-    df_2023['salud_problemas'] = df_2023.apply(resolver_problemas_salud_2023, axis=1)
-    df_2023.drop(columns=[
-        'q37_salud_problemas', 'q37_salud_problemas_fisica', 'q37_salud_problemas_mental',
-        'q37_salud_problemas_esi', 'q37_salud_problemas_no'
-    ], inplace=True)
+    df_2023 = construir_multiseleccion(df_2023, columnas_motivo_2023, columnas_1_0=True, columna_resumen='q37_salud_problemas')
+    for columna in columnas_enfermedad_2020:
+        df_2023[columna] = np.nan
+    df_2023.drop(columns=['q37_salud_problemas'] + [c for cols in columnas_motivo_2023.values() for c in cols], inplace=True)
 
     #ACCESO A LA SALUD
     df_2020 = construir_multiseleccion(df_2020, {
@@ -476,16 +481,14 @@ def run_etl():
     #SOLICITUD DE ASILO / REFUGIO / VISA HUMANITARIA
     def mapear_asilo_2020(valor):
         if pd.isna(valor):
-            return 'Prefiero no responder'
-        if valor == 'No':
+            return np.nan
+        if valor in ('No', 'No sé en qué consisten el refugio ni los visados humanitarios'):
             return 'No'
         if valor == 'No quiero responder':
             return 'Prefiero no responder'
-        if valor == 'No sé en qué consisten el refugio ni los visados humanitarios':
-            return 'Prefiero no responder'
         if valor.startswith('Sí,'):
             return 'Sí'
-        return 'Prefiero no responder'
+        return np.nan
 
     df_2020['solicitud_asilo_refugio'] = df_2020['q15_sol_asilo'].apply(mapear_asilo_2020)
     df_2020.drop(columns=['q15_sol_asilo'], inplace=True)
@@ -511,15 +514,18 @@ def run_etl():
     for columna_origen, columna_nueva in dificultad_cols.items():
         mapa_dificultad_2023.setdefault(columna_nueva, []).append(columna_origen)
 
-    df_2023['dni_tuvo_dificultad'] = df_2023['q20_dni_dificultad_binaria'].replace({np.nan: 'Prefiero no responder'})
+        # 2023 (Q20): Sí / No / Prefiero no responder tal cual (no tiene vacíos).
+    df_2023['dni_tuvo_dificultad'] = df_2023['q20_dni_dificultad_binaria'].replace({'Si': 'Sí'})
     df_2023 = construir_multiseleccion(df_2023, mapa_dificultad_2023, columnas_1_0=True, columna_resumen='q20_dni_dificultad_binaria')
     df_2023.drop(columns=list(dificultad_cols.keys()) + ['q20_dni_dificultad_binaria'], inplace=True)
 
-    dni_dificultad_texto_2020 = df_2020['q14_problemas_docu'].replace({
+    dni_dificultad_texto_2020 = df_2020['q14_problemas_docu'].str.replace('\xa0', ' ').replace({
         'Sí, no cumplo con los requisitos para regularizarme': 'Otro (especifique)',
         'Sí, no sé usar el sistema online para el trámite (RADEX)': 'Sí, no tengo internet o herramientas para hacerlo (teléfono, computadora, etc.)'
     })
-    df_2020['dni_tuvo_dificultad'] = dni_dificultad_texto_2020.replace({np.nan: 'Prefiero no responder'})
+    df_2020['dni_tuvo_dificultad'] = dni_dificultad_texto_2020.map(
+        lambda valor: np.nan if pd.isna(valor) else ('No' if valor == 'No, no he tenido dificultades' else 'Sí')
+    )
     mapa_dificultad_texto_2020 = {
         'dni_dificultad_tipo_turnos': 'Sí, no pude sacar turno o me lo postergaron',
         'dni_dificultad_tipo_economica': 'Sí, por dificultades económicas',
@@ -556,14 +562,11 @@ def run_etl():
     df_2020['hogar_convivencia'] = df_2020['q17_casado'].replace({
         'Si, con una persona nacida en otro país (migrante o extranjero/a)': 'Sí, con una persona nacida en otro país (migrante o extranjero/a)',
         'Si, con una persona nacida en Argentina': 'Sí, con una persona nacida en Argentina',
-        'No quiero contestar': 'Prefiero no responder',
-        np.nan: 'Prefiero no responder'
+        'No quiero contestar': 'Prefiero no responder'
     })
     df_2020.drop(columns=['q17_casado'], inplace=True)
 
-    df_2023['hogar_convivencia'] = df_2023['q28_hogar_convivencia'].replace({
-        np.nan: 'Prefiero no responder'
-    })
+    df_2023['hogar_convivencia'] = df_2023['q28_hogar_convivencia']
     df_2023.drop(columns=['q28_hogar_convivencia'], inplace=True)
 
     #PREGUNTAS SOLO UN AÑO
@@ -576,7 +579,6 @@ def run_etl():
 
     df_2020['vivienda_tenencia'] = df_2020['q32_vivienda_condicion'].replace({
         'Alquiler con contrato': 'Alquiler con contrato formal',
-        'Alquiler informal': 'Alquiler informal / anticrético',
         'Propio (de usted o un familiar)': 'Propia (de usted o un miembro de su hogar)'
     })
     df_2020.drop(columns=['q32_vivienda_condicion'], inplace=True)
@@ -728,7 +730,6 @@ def run_etl():
         'Desempleado/a (buscando trabajo)': 'Desempleado'
     }
     df_2020['situacion_ocupacional_agrup'] = df_2020['q42_trabajo_preCOVID'].replace(mapa_situacion_ocupacional_2020)
-    df_2020['situacion_ocupacional_agrup'] = df_2020['situacion_ocupacional_agrup'].fillna('Otra')
     df_2020.drop(columns=['q42_trabajo_preCOVID'], inplace=True)
 
     mapa_situacion_ocupacional_2023 = {
@@ -741,11 +742,10 @@ def run_etl():
         'Jubilado/a, retirado/a': 'Jubilado-retirado',
         'Estudiando': 'Solo estudia',
         'Desempleado/ buscando trabajo': 'Desempleado',
-        'Otra': 'Otra',
-        'Prefiero no responder': 'Otra'
+        'Otra': np.nan,
+        'Prefiero no responder': np.nan
     }
     df_2023['situacion_ocupacional_agrup'] = df_2023['q51_situacion_ocupacional'].replace(mapa_situacion_ocupacional_2023)
-    df_2023['situacion_ocupacional_agrup'] = df_2023['situacion_ocupacional_agrup'].fillna('Otra')
     df_2023.drop(columns=['q51_situacion_ocupacional'], inplace=True)
 
     #CIRCUITOS LABORALES
@@ -763,7 +763,7 @@ def run_etl():
         'Transportes (taxi, remis, colectivo, camión, etc.)': 'Circuito de trabajo autónomo',
         'Reparación de bienes de consumo (gasista, mecánico, electricista, etc.)': 'Circuito de trabajo autónomo',
         'Venta ambulante/venta por catálogo / feriante': 'Circuito de trabajo autónomo',
-        'Otra (especifique)': np.nan
+        'Otra (especifique)': 'Otro'
     }
     df_2020['circuitos_laborales'] = df_2020['q44_ocupacion'].replace(mapa_circuitos_2020)
     df_2020.drop(columns=['q44_ocupacion'], inplace=True)
@@ -849,7 +849,7 @@ def run_etl():
             return 'Sí'
         if row[columnas_programas_2020].notna().any():
             return 'Sí'
-        return 'No sé'
+        return 'Prefiero no responder'
 
     df_2020['recibe_ayuda_economica'] = df_2020.apply(resolver_recibe_ayuda_2020, axis=1)
     df_2020.drop(columns=[
@@ -860,12 +860,12 @@ def run_etl():
 
     def resolver_recibe_ayuda_2023(row):
         if row['q60_subsidios_prefiero_no'] == 1:
-            return 'No sé'
+            return 'Prefiero no responder'
         if row['q60_subsidios_no'] == 1:
             return 'No'
         if row['q60_subsidios_no'] == 0:
             return 'Sí'
-        return 'No sé'
+        return np.nan
 
     df_2023['recibe_ayuda_economica'] = df_2023.apply(resolver_recibe_ayuda_2023, axis=1)
     df_2023.drop(columns=[
@@ -947,14 +947,12 @@ def run_etl():
         'Sí, frecuentemente': 'Sí',
         'Sí, siempre': 'Sí'
     })
-    df_2020['violencia_fuerza_seguridad'] = df_2020['violencia_fuerza_seguridad'].fillna('Prefiero no responder')
     df_2020.drop(columns=['q55_violencia'], inplace=True)
 
     df_2023['violencia_fuerza_seguridad'] = df_2023['q64_violencia_fuerza_seguridad'].replace({
         'No, nunca': 'No',
         'Sí, frecuentemente': 'Sí'
     })
-    df_2023['violencia_fuerza_seguridad'] = df_2023['violencia_fuerza_seguridad'].fillna('Prefiero no responder')
     df_2023.drop(columns=['q64_violencia_fuerza_seguridad'], inplace=True)
 
     #VIOLENCIA POR RAZONES DE GENERO

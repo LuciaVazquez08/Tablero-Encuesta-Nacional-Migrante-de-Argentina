@@ -30,8 +30,15 @@ def render():
     with col2:
         grafico_barras(df, "solicitud_asilo_refugio", "Distribución por solicitud de asilo, refugio o visado humanitario")
 
+        col3, _ = st.columns(2)
+    with col3:
+        grafico_barras(
+            df, "dni_tuvo_dificultad", "Distribución por dificultad para tramitar o renovar el DNI",
+            orden=["Sí", "No", "Prefiero no responder"],
+        )
+
     grafico_multiseleccion(
-        df, DIFICULTADES_DNI,
+        df[df["dni_tuvo_dificultad"] == "Sí"], DIFICULTADES_DNI,
         "Distribución por tipos de dificultades para tramitar o renovar el DNI",
         "Qué % de quienes tuvieron dificultades declaró cada tipo. En la edición 2023 la pregunta "
         "admite selección múltiple (una persona puede haber tenido más de una dificultad); en "
