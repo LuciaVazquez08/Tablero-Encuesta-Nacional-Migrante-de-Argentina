@@ -51,5 +51,6 @@ Para ejecutar este proyecto localmente, sigue estos pasos:
 
 1. **Clonar el repositorio:**
    ```bash
-   git clone [https://github.com/LuciaVazquez08/ENMA.git](https://github.com/LuciaVazquez08/ENMA.git)
-   cd ENMA
+   git clone https://github.com/LuciaVazquez08/Tablero-Encuesta-Nacional-Migrante-de-Argentina.git
+   cd Tablero-Encuesta-Nacional-Migrante-de-Argentina
+   ```
